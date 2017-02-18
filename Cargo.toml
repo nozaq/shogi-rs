@@ -2,5 +2,10 @@
 name = "shogi"
 version = "0.1.0"
 authors = ["Takashi Nozawa <nozazon@gmail.com>"]
+description = "A shogi library"
+repository = "https://github.com/nozaq/shogi-rs"
+documentation = "http://nozaq.github.io/shogi-rs"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
