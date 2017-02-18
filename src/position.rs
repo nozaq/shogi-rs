@@ -1,0 +1,1294 @@
+use std::collections::HashSet;
+use std::fmt;
+use {Color, Hand, Move, Piece, PieceType, Square, MoveError, SfenError};
+
+/// MoveRecord stores information necessary to undo the move.
+#[derive(Debug)]
+pub enum MoveRecord {
+    Normal {
+        from: Square,
+        to: Square,
+        moved: Piece,
+        captured: Option<Piece>,
+        promoted: bool,
+    },
+    Drop { to: Square, piece: Piece },
+}
+
+impl MoveRecord {
+    /// Converts the move into SFEN formatted string.
+    pub fn to_sfen(&self) -> String {
+        match *self {
+            MoveRecord::Normal { from, to, promoted, .. } => {
+                format!("{}{}{}", from, to, if promoted { "+" } else { "" })
+            }
+            MoveRecord::Drop { to, piece: Piece { piece_type, .. } } => {
+                format!("{}*{}", piece_type.to_string().to_uppercase(), to)
+            }
+        }
+    }
+}
+
+impl PartialEq<Move> for MoveRecord {
+    fn eq(&self, other: &Move) -> bool {
+        match (self, other) {
+            (&MoveRecord::Normal { from: f1, to: t1, promoted, .. },
+             &Move::Normal { from: f2, to: t2, promote }) => {
+                f1 == f2 && t1 == t2 && promote == promoted
+            }
+            (&MoveRecord::Drop { to: t1, piece, .. }, &Move::Drop { to: t2, piece_type }) => {
+                t1 == t2 && piece.piece_type == piece_type
+            }
+            _ => false,
+        }
+    }
+}
+
+/// Represents a state of the game.
+///
+/// # Examples
+///
+/// ```
+/// use shogi::{Move, Position, Square};
+///
+/// let mut pos = Position::new();
+/// pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").unwrap();
+/// 
+/// let m = Move::Normal{from: Square::new(2, 6), to: Square::new(2, 5), promote: false};
+/// pos.make_move(&m).unwrap();
+/// 
+/// assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f", pos.to_sfen());
+/// ```
+#[derive(Debug)]
+pub struct Position {
+    board: [[Option<Piece>; 9]; 9],
+    hand: Hand,
+    ply: u16,
+    side_to_move: Color,
+    move_history: Vec<MoveRecord>,
+    sfen_history: Vec<(String, u16)>,
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Type implementation
+/////////////////////////////////////////////////////////////////////////////
+
+// TODO Impasse check.
+impl Position {
+    /// Creates a new instance of `Position` with an empty board.
+    pub fn new() -> Position {
+        Default::default()
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+    // Accessors
+    /////////////////////////////////////////////////////////////////////////
+
+    /// Returns a piece at the given square.
+    pub fn piece_at(&self, sq: Square) -> &Option<Piece> {
+        &self.board[sq.rank() as usize][sq.file() as usize]
+    }
+
+    /// Sets a piece at the given square.
+    pub fn set_piece(&mut self, sq: Square, p: Option<Piece>) {
+        self.board[sq.rank() as usize][sq.file() as usize] = p;
+    }
+
+    /// Returns the number of the given piece in hand.
+    pub fn hand(&self, p: &Piece) -> u8 {
+        self.hand.get(p)
+    }
+
+    /// Returns the side to make a move next.
+    pub fn side_to_move(&self) -> Color {
+        self.side_to_move
+    }
+
+    /// Returns the number of plies already completed by the current state.
+    pub fn ply(&self) -> u16 {
+        self.ply
+    }
+
+    /// Returns a history of all moves made since the beginning of the game.
+    pub fn move_history(&self) -> &[MoveRecord] {
+        &self.move_history
+    }
+
+    /// Checks if the king with the given color is in check.
+    pub fn in_check(&self, c: Color) -> bool {
+        let king_sq = self.find_king(c);
+        if king_sq.is_none() {
+            return false;
+        }
+
+        self.is_attacked_by(king_sq.unwrap(), c.flip())
+    }
+
+    fn is_attacked_by(&self, sq: Square, c: Color) -> bool {
+        use super::PieceType::*;
+
+        [Pawn, Lance, Knight, Silver, Gold, King, Rook, Bishop, ProPawn, ProLance, ProKnight,
+         ProSilver, ProRook, ProBishop]
+            .iter()
+            .any(|pt| {
+                let attack_pc = Piece {
+                    piece_type: *pt,
+                    color: c,
+                };
+
+                self.move_candidates(sq, &attack_pc.flip())
+                    .iter()
+                    .any(|&sq| *self.piece_at(sq) == Some(attack_pc))
+            })
+    }
+
+    fn find_king(&self, c: Color) -> Option<Square> {
+        let pc = Piece {
+            piece_type: PieceType::King,
+            color: c,
+        };
+        for i in 0..9 {
+            for j in 0..9 {
+                let sq = Square::new(i, j);
+
+                if *self.piece_at(sq) == Some(pc) {
+                    return Some(sq);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn log_position(&mut self) {
+        // TODO: SFEN string is used to represent a state of position, but any transformation which uniquely distinguish positions can be used here.
+        // Consider light-weight option if generating SFEN string for each move is time-consuming.
+        let sfen = self.generate_sfen().split(" ").take(3).collect::<Vec<_>>().join(" ");
+        let in_check = self.in_check(self.side_to_move());
+
+        let continuous_check = if in_check {
+            let past = if self.sfen_history.len() >= 2 {
+                let record = self.sfen_history.get(self.sfen_history.len() - 2).unwrap();
+                record.1
+            } else {
+                0
+            };
+            past + 1
+        } else {
+            0
+        };
+
+        self.sfen_history.push((sfen, continuous_check));
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+    // Making a move
+    /////////////////////////////////////////////////////////////////////////
+
+    /// Makes the given move. Returns `Err` if the move is invalid or any special condition is met.
+    pub fn make_move(&mut self, m: &Move) -> Result<(), MoveError> {
+        let res = match *m {
+            Move::Normal { from, to, promote } => try!(self.make_normal_move(from, to, promote)),
+            Move::Drop { to, ref piece_type } => try!(self.make_drop_move(to, piece_type)),
+        };
+
+        self.move_history.push(res);
+        Ok(())
+    }
+
+    fn make_normal_move(&mut self,
+                        from: Square,
+                        to: Square,
+                        promote: bool)
+                        -> Result<MoveRecord, MoveError> {
+        let stm = self.side_to_move();
+        let opponent = stm.flip();
+
+        let moved = try!(self.piece_at(from)
+            .ok_or(MoveError::Inconsistent));
+
+        let captured = *self.piece_at(to);
+
+        if moved.color != stm {
+            return Err(MoveError::Inconsistent);
+        }
+
+        if promote && !from.in_promotion_zone(stm) && !to.in_promotion_zone(stm) {
+            return Err(MoveError::Inconsistent);
+        }
+
+        if !self.move_candidates(from, &moved).contains(&to) {
+            return Err(MoveError::Inconsistent);
+        }
+
+        if !promote && !moved.is_placeable_at(to) {
+            return Err(MoveError::NonMovablePiece);
+        }
+
+        let placed = if promote {
+            match moved.promote() {
+                Some(promoted) => promoted,
+                None => return Err(MoveError::Inconsistent),
+            }
+        } else {
+            moved
+        };
+
+        self.set_piece(from, None);
+        self.set_piece(to, Some(placed));
+
+        if self.in_check(stm) {
+            // Undo-ing the move.
+            self.set_piece(from, Some(moved));
+            self.set_piece(to, captured);
+
+            return Err(MoveError::InCheck);
+        }
+
+        if let Some(ref cap) = captured {
+            let pc = cap.flip();
+            let pc = match pc.unpromote() {
+                Some(unpromoted) => unpromoted,
+                None => pc,
+            };
+            self.hand.increment(&pc);
+        }
+        self.side_to_move = opponent;
+        self.ply += 1;
+
+        self.log_position();
+        try!(self.detect_repetition());
+
+        Ok(MoveRecord::Normal {
+            from: from,
+            to: to,
+            moved: moved,
+            captured: captured,
+            promoted: promote,
+        })
+    }
+
+    fn make_drop_move(&mut self, to: Square, pt: &PieceType) -> Result<MoveRecord, MoveError> {
+        let stm = self.side_to_move();
+        let opponent = stm.flip();
+
+        if let Some(_) = *self.piece_at(to) {
+            return Err(MoveError::Inconsistent);
+        }
+
+        let pc = Piece {
+            piece_type: *pt,
+            color: stm,
+        };
+
+        if self.hand(&pc) == 0 {
+            return Err(MoveError::Inconsistent);
+        }
+
+        if !pc.is_placeable_at(to) {
+            return Err(MoveError::NonMovablePiece);
+        }
+
+        if pc.piece_type == PieceType::Pawn {
+            // Nifu check.
+            for i in 0..9 {
+                if let Some(fp) = *self.piece_at(Square::new(to.file(), i)) {
+                    if fp == pc {
+                        return Err(MoveError::Nifu);
+                    }
+                }
+            }
+
+            // Uchifuzume check.
+            let king_sq = to.shift(0, if stm == Color::Black { -1 } else { 1 });
+            if let Some(pc @ Piece { piece_type: PieceType::King, .. }) = *self.piece_at(king_sq) {
+                if pc.color == opponent {
+                    self.set_piece(king_sq, None);
+
+                    // TODO check if the piece is pinned.
+                    if !self.is_attacked_by(to, opponent) {
+                        self.set_piece(to, Some(pc));
+
+                        if self.move_candidates(king_sq, &pc).iter().all(|sq| {
+                            let pc = self.piece_at(*sq);
+
+                            if let Some(pc) = *pc {
+                                if pc.color == opponent {
+                                    return true;
+                                }
+                            }
+
+                            self.is_attacked_by(*sq, stm)
+                        }) {
+                            return Err(MoveError::Uchifuzume);
+                        }
+
+                        self.set_piece(to, None);
+                    }
+                    self.set_piece(king_sq, Some(pc));
+                }
+            }
+        }
+
+        self.set_piece(to, Some(pc));
+
+        if self.in_check(stm) {
+            // Undo-ing the move.
+            self.set_piece(to, None);
+            return Err(MoveError::InCheck);
+        }
+
+        self.hand.decrement(&pc);
+        self.side_to_move = opponent;
+        self.ply += 1;
+
+        self.log_position();
+        try!(self.detect_repetition());
+
+        Ok(MoveRecord::Drop {
+            to: to,
+            piece: pc,
+        })
+    }
+
+    /// Undoes the last move.
+    pub fn unmake_move(&mut self) -> Result<(), MoveError> {
+        if self.move_history.is_empty() {
+            // TODO: error?
+            return Ok(());
+        }
+
+        let last = self.move_history.pop().unwrap();
+        match last {
+            MoveRecord::Normal { from, to, ref moved, ref captured, promoted } => {
+                if *self.piece_at(from) != None {
+                    return Err(MoveError::Inconsistent);
+                }
+
+                let pc = if promoted {
+                    match moved.unpromote() {
+                        Some(unpromoted) => unpromoted,
+                        None => return Err(MoveError::Inconsistent),
+                    }
+                } else {
+                    *moved
+                };
+                if *self.piece_at(to) != Some(pc) {
+                    return Err(MoveError::Inconsistent);
+                }
+
+                self.set_piece(from, Some(*moved));
+                self.set_piece(to, *captured);
+                if let Some(ref cap) = *captured {
+                    self.hand.decrement(&cap.flip());
+                }
+            }
+            MoveRecord::Drop { to, ref piece } => {
+                if *self.piece_at(to) != Some(*piece) {
+                    return Err(MoveError::Inconsistent);
+                }
+
+                self.set_piece(to, None);
+                self.hand.increment(piece);
+            }
+        };
+
+        self.side_to_move = self.side_to_move.flip();
+        self.ply -= 1;
+        self.sfen_history.pop();
+
+        Ok(())
+    }
+
+    /// Returns a list of squares to where the given pieve at the given square can move.
+    pub fn move_candidates(&self, sq: Square, p: &Piece) -> Vec<Square> {
+        use super::PieceType::*;
+
+        let mut candidates = HashSet::new();
+
+        let shift = |df: i8, mut dr: i8, candidates: &mut HashSet<Square>| {
+            if p.color == Color::White {
+                dr *= -1;
+            }
+
+            candidates.insert(sq.shift(df, dr));
+        };
+
+        let ray = |df: i8, mut dr: i8, candidates: &mut HashSet<Square>| {
+            if p.color == Color::White {
+                dr *= -1;
+            }
+
+            let mut ptr = sq.shift(df, dr);
+            while ptr.is_valid() {
+                candidates.insert(ptr);
+
+                if let Some(_) = *self.piece_at(ptr) {
+                    break;
+                }
+
+                ptr = ptr.shift(df, dr);
+            }
+        };
+
+        match p.piece_type {
+            Pawn => shift(0, -1, &mut candidates),
+            Lance => ray(0, -1, &mut candidates),
+            Knight => {
+                shift(-1, -2, &mut candidates);
+                shift(1, -2, &mut candidates);
+            }
+            Silver => {
+                shift(-1, -1, &mut candidates);
+                shift(0, -1, &mut candidates);
+                shift(1, -1, &mut candidates);
+                shift(-1, 1, &mut candidates);
+                shift(1, 1, &mut candidates);
+            }
+            Rook => {
+                ray(0, -1, &mut candidates);
+                ray(0, 1, &mut candidates);
+                ray(1, 0, &mut candidates);
+                ray(-1, 0, &mut candidates);
+            }
+            Bishop => {
+                ray(-1, -1, &mut candidates);
+                ray(-1, 1, &mut candidates);
+                ray(1, -1, &mut candidates);
+                ray(1, 1, &mut candidates);
+            }
+            King => {
+                shift(-1, -1, &mut candidates);
+                shift(0, -1, &mut candidates);
+                shift(1, -1, &mut candidates);
+                shift(-1, 0, &mut candidates);
+                shift(1, 0, &mut candidates);
+                shift(-1, 1, &mut candidates);
+                shift(0, 1, &mut candidates);
+                shift(1, 1, &mut candidates);
+            }
+            ProRook => {
+                ray(0, -1, &mut candidates);
+                ray(0, 1, &mut candidates);
+                ray(1, 0, &mut candidates);
+                ray(-1, 0, &mut candidates);
+                shift(-1, -1, &mut candidates);
+                shift(0, -1, &mut candidates);
+                shift(1, -1, &mut candidates);
+                shift(-1, 0, &mut candidates);
+                shift(1, 0, &mut candidates);
+                shift(-1, 1, &mut candidates);
+                shift(0, 1, &mut candidates);
+                shift(1, 1, &mut candidates);
+            }
+            ProBishop => {
+                ray(-1, -1, &mut candidates);
+                ray(-1, 1, &mut candidates);
+                ray(1, -1, &mut candidates);
+                ray(1, 1, &mut candidates);
+                shift(-1, -1, &mut candidates);
+                shift(0, -1, &mut candidates);
+                shift(1, -1, &mut candidates);
+                shift(-1, 0, &mut candidates);
+                shift(1, 0, &mut candidates);
+                shift(-1, 1, &mut candidates);
+                shift(0, 1, &mut candidates);
+                shift(1, 1, &mut candidates);
+            }
+            _ => {
+                shift(-1, -1, &mut candidates);
+                shift(0, -1, &mut candidates);
+                shift(1, -1, &mut candidates);
+                shift(-1, 0, &mut candidates);
+                shift(1, 0, &mut candidates);
+                shift(0, 1, &mut candidates);
+            }
+        };
+
+        candidates.into_iter()
+            .filter(|sq| sq.is_valid())
+            .filter(|&sq| match *self.piece_at(sq) {
+                Some(p2) => p2.color == p.color.flip(),
+                None => true,
+            })
+            .collect::<Vec<_>>()
+    }
+
+    fn detect_repetition(&self) -> Result<(), MoveError> {
+        if self.sfen_history.len() < 9 {
+            return Ok(());
+        }
+
+        let cur = self.sfen_history.last().unwrap();
+
+        let mut cnt = 0;
+        for (i, entry) in self.sfen_history.iter().rev().enumerate() {
+            if entry.0 == cur.0 {
+                cnt += 1;
+
+                if cnt == 4 {
+                    let prev = self.sfen_history.get(self.sfen_history.len() - 2).unwrap();
+
+                    if cur.1 * 2 >= (i as u16) {
+                        return Err(MoveError::PerpetualCheckLose);
+                    } else if prev.1 * 2 >= (i as u16) {
+                        return Err(MoveError::PerpetualCheckWin);
+                    } else {
+                        return Err(MoveError::Repetition);
+                    }
+                }
+            }
+        }
+
+        return Ok(());
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+    // SFEN serialization / deserialization
+    /////////////////////////////////////////////////////////////////////////
+
+    /// Parses the given SFEN string and updates the game state.
+    pub fn set_sfen(&mut self, sfen_str: &str) -> Result<(), SfenError> {
+        let mut parts = sfen_str.split_whitespace();
+
+        // Build the initial position, all parts are required.
+        try!(parts.next().ok_or(SfenError {}).and_then(|s| self.parse_sfen_board(s)));
+        try!(parts.next().ok_or(SfenError {}).and_then(|s| self.parse_sfen_stm(s)));
+        try!(parts.next().ok_or(SfenError {}).and_then(|s| self.parse_sfen_hand(s)));
+        try!(parts.next().ok_or(SfenError {}).and_then(|s| self.parse_sfen_ply(s)));
+
+        self.sfen_history.clear();
+        self.log_position();
+
+        // Make moves following the initial position, optional.
+        if let Some("moves") = parts.next() {
+            for m in parts {
+                if let Some(m) = Move::from_sfen(m) {
+                    // Stop if any error occurrs.
+                    match self.make_move(&m) {
+                        Ok(_) => {
+                            self.log_position();
+                        }
+                        Err(_) => break,
+                    }
+                } else {
+                    return Err(SfenError {});
+                }
+            }
+        }
+
+
+        Ok(())
+    }
+
+    /// Converts the current state into SFEN formatted string.
+    pub fn to_sfen(&self) -> String {
+        if self.sfen_history.is_empty() {
+            return self.generate_sfen();
+        }
+
+        if self.move_history.is_empty() {
+            return format!("{} {}", self.sfen_history.first().unwrap().0, self.ply);
+        }
+
+        let mut sfen = format!("{} {} moves",
+                               &self.sfen_history.first().unwrap().0,
+                               self.ply - self.move_history.len() as u16);
+
+        for m in self.move_history.iter() {
+            sfen.push_str(&format!(" {}", &m.to_sfen()));
+        }
+
+        sfen
+    }
+
+    fn parse_sfen_board(&mut self, s: &str) -> Result<(), SfenError> {
+        let rows = s.split('/');
+
+        for (i, row) in rows.enumerate() {
+            if i >= 9 {
+                return Err(SfenError {});
+            }
+
+            let mut j = 0;
+
+            let mut is_promoted = false;
+            for c in row.chars() {
+                match c {
+                    '+' => {
+                        is_promoted = true;
+                    }
+                    n if n.is_digit(10) => {
+                        if let Some(n) = n.to_digit(10) {
+                            for _ in 0..n {
+                                if j >= 9 {
+                                    return Err(SfenError {});
+                                }
+
+                                self.board[i][j] = None;
+
+                                j += 1;
+                            }
+                        }
+                    }
+                    s => {
+                        match Piece::from_sfen(s) {
+                            Some(mut piece) => {
+                                if j >= 9 {
+                                    return Err(SfenError {});
+                                }
+
+                                if is_promoted {
+                                    if let Some(promoted) = piece.piece_type.promote() {
+                                        piece.piece_type = promoted;
+                                    } else {
+                                        return Err(SfenError {});
+                                    }
+                                }
+
+                                self.board[i][j] = Some(piece);
+                                j += 1;
+
+                                is_promoted = false;
+                            }
+                            None => return Err(SfenError {}),
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn parse_sfen_stm(&mut self, s: &str) -> Result<(), SfenError> {
+        self.side_to_move = match s {
+            "b" => Color::Black,
+            "w" => Color::White,
+            _ => return Err(SfenError {}),
+        };
+        Ok(())
+    }
+
+    fn parse_sfen_hand(&mut self, s: &str) -> Result<(), SfenError> {
+        if s == "-" {
+            self.hand.clear();
+            return Ok(());
+        }
+
+        let mut num_pieces: u8 = 1;
+        for c in s.chars() {
+            match c {
+                n if n.is_digit(10) => {
+                    if let Some(n) = n.to_digit(10) {
+                        num_pieces = n as u8;
+                    }
+                }
+                s => {
+                    match Piece::from_sfen(s) {
+                        Some(p) => self.hand.set(&p, num_pieces),
+                        None => return Err(SfenError {}),
+                    };
+                    num_pieces = 1;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn parse_sfen_ply(&mut self, s: &str) -> Result<(), SfenError> {
+        self.ply = try!(s.parse());
+        Ok(())
+    }
+
+    fn generate_sfen(&self) -> String {
+        use super::PieceType::*;
+
+        let board = self.board
+            .iter()
+            .map(|row| {
+                let mut s = String::new();
+                let mut num_spaces = 0;
+                for board_item in row.iter() {
+                    match *board_item {
+                        Some(pc) => {
+                            if num_spaces > 0 {
+                                s.push_str(&num_spaces.to_string());
+                                num_spaces = 0;
+                            }
+
+                            s.push_str(&pc.to_string());
+                        }
+                        None => num_spaces += 1,
+                    }
+                }
+                if num_spaces > 0 {
+                    s.push_str(&num_spaces.to_string());
+                }
+
+                s
+            })
+            .collect::<Vec<_>>()
+            .join("/");
+
+        let color = if self.side_to_move == Color::Black {
+            "b"
+        } else {
+            "w"
+        };
+
+        let mut hand = [Color::Black, Color::White]
+            .iter()
+            .map(|c| {
+                [Rook, Bishop, Gold, Silver, Knight, Lance, Pawn]
+                    .iter()
+                    .map(|pt| {
+                        let pc = Piece {
+                            piece_type: *pt,
+                            color: *c,
+                        };
+                        let n = self.hand.get(&pc);
+
+                        if n == 0 {
+                            "".to_string()
+                        } else if n == 1 {
+                            format!("{}", pc)
+                        } else {
+                            format!("{}{}", n, pc)
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .collect::<Vec<_>>()
+            .join("");
+
+        if hand.is_empty() {
+            hand = "-".to_string();
+        }
+
+        format!("{} {} {} {}", board, color, hand, self.ply)
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Trait implementations
+/////////////////////////////////////////////////////////////////////////////
+
+impl Default for Position {
+    fn default() -> Position {
+        Position {
+            side_to_move: Color::Black,
+            board: Default::default(),
+            hand: Default::default(),
+            ply: 1,
+            move_history: Default::default(),
+            sfen_history: Default::default(),
+        }
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
+        try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+        for (i, row) in self.board.iter().enumerate() {
+            try!(write!(f, "|"));
+            for piece in row.iter() {
+                if let Some(ref piece) = *piece {
+                    try!(write!(f, "{:>3}|", piece.to_string()));
+                } else {
+                    try!(write!(f, "   |"));
+                }
+            }
+            try!(writeln!(f, " {}", (('a' as usize + i) as u8) as char));
+            try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+        }
+
+        try!(writeln!(f,
+                      "Side to move: {}",
+                      if self.side_to_move == Color::Black {
+                          "Black"
+                      } else {
+                          "White"
+                      }));
+
+        let fmt_hand = |color: Color, f: &mut fmt::Formatter| -> fmt::Result {
+            use super::PieceType::*;
+            for pt in [Rook, Bishop, Gold, Silver, Knight, Lance, Pawn].iter() {
+                let pc = Piece {
+                    piece_type: *pt,
+                    color: color,
+                };
+                let n = self.hand.get(&pc);
+
+                if n > 0 {
+                    try!(write!(f, "{}{} ", pc, n));
+                }
+            }
+            Ok(())
+        };
+        try!(write!(f, "Hand (Black): "));
+        try!(fmt_hand(Color::Black, f));
+        try!(writeln!(f, ""));
+
+        try!(write!(f, "Hand (White): "));
+        try!(fmt_hand(Color::White, f));
+        try!(writeln!(f, ""));
+
+        try!(write!(f, "Ply: {}", self.ply));
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new() {
+        let pos = Position::new();
+
+        for i in 0..9 {
+            for j in 0..9 {
+                let sq = Square::new(i, j);
+                assert_eq!(None, *pos.piece_at(sq));
+            }
+        }
+    }
+
+    #[test]
+    fn in_check() {
+        let test_cases =
+            [("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1", false, false),
+             ("9/3r5/9/9/6B2/9/9/9/3K5 b P 1", true, false),
+             ("ln2r1knl/2gb1+Rg2/4Pp1p1/p1pp1sp1p/1N2pN1P1/2P2PP2/PP1G1S2R/1SG6/LK6L w 2PSp 1",
+              false,
+              true)];
+
+        let mut pos = Position::new();
+        for case in test_cases.iter() {
+            pos.set_sfen(case.0).expect("failed to parse SFEN string");
+            assert_eq!(case.1, pos.in_check(Color::Black));
+            assert_eq!(case.2, pos.in_check(Color::White));
+        }
+    }
+
+    #[test]
+    fn move_candidates() {
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .expect("failed to parse SFEN string");
+
+        let mut sum = 0;
+        for file in 0..9 {
+            for rank in 0..9 {
+                let sq = Square::new(file, rank);
+                let pc = pos.piece_at(sq);
+
+                if let Some(pc) = *pc {
+                    if pc.color == pos.side_to_move() {
+                        sum += pos.move_candidates(sq, &pc).len();
+                    }
+                }
+            }
+        }
+
+        assert_eq!(30, sum);
+    }
+
+    #[test]
+    fn make_normal_move() {
+        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
+        let test_cases = [(Square::new(7, 1), Square::new(7, 2), false, true),
+                          (Square::new(2, 2), Square::new(3, 4), false, true),
+                          (Square::new(6, 8), Square::new(5, 7), true, true),
+                          (Square::new(3, 5), Square::new(0, 8), true, true),
+                          (Square::new(7, 1), Square::new(7, 2), false, true),
+                          (Square::new(0, 2), Square::new(0, 3), false, false),
+                          (Square::new(0, 1), Square::new(1, 1), false, false),
+                          (Square::new(0, 1), Square::new(0, 3), false, false),
+                          (Square::new(7, 1), Square::new(7, 2), true, false)];
+
+        let mut pos = Position::new();
+        for case in test_cases.iter() {
+            pos.set_sfen(base_sfen).expect("failed to parse SFEN string");
+            assert_eq!(case.3, pos.make_normal_move(case.0, case.1, case.2).is_ok());
+        }
+
+        // Leaving the checked king is illegal.
+        pos.set_sfen("9/3r5/9/9/6B2/9/9/9/3K5 b P 1").expect("failed to parse SFEN string");
+        assert!(pos.make_normal_move(Square::new(3, 8), Square::new(3, 7), false).is_err());
+        assert!(pos.make_normal_move(Square::new(3, 8), Square::new(2, 8), false).is_ok());
+    }
+
+    #[test]
+    fn make_drop_move() {
+        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
+        let test_cases = [(Square::new(4, 4), PieceType::Pawn, true),
+                          (Square::new(4, 4), PieceType::Rook, false),
+                          (Square::new(0, 0), PieceType::Pawn, false),
+                          (Square::new(3, 5), PieceType::Pawn, false),
+                          (Square::new(0, 1), PieceType::Pawn, false),
+                          (Square::new(4, 8), PieceType::Pawn, false)];
+
+        let mut pos = Position::new();
+        for case in test_cases.iter() {
+            pos.set_sfen(base_sfen).expect("failed to parse SFEN string");
+            assert_eq!(case.2,
+                       pos.make_move(&Move::Drop {
+                               to: case.0,
+                               piece_type: case.1,
+                           })
+                           .is_ok());
+        }
+    }
+
+    #[test]
+    fn nifu() {
+        let ng_cases = [("ln1g5/1ks1g3l/1p2p1n2/p1pGs2rp/1P1N1ppp1/P1SB1P2P/1S1p1bPP1/LKG6/4R2NL \
+                          w 2Pp 91",
+                         Square::new(3, 2))];
+        let ok_cases = [("ln1g5/1ks1g3l/1p2p1n2/p1pGs2rp/1P1N1ppp1/P1SB1P2P/1S1+p1bPP1/LKG6/4R2NL \
+                          w 2Pp 91",
+                         Square::new(3, 2))];
+
+        let mut pos = Position::new();
+        for (i, case) in ng_cases.iter().enumerate() {
+            pos.set_sfen(case.0).expect("failed to parse SFEN string");
+            assert_eq!(Some(MoveError::Nifu),
+                       pos.make_move(&Move::Drop {
+                               to: case.1,
+                               piece_type: PieceType::Pawn,
+                           })
+                           .err(),
+                       "failed at #{}",
+                       i);
+        }
+
+        for (i, case) in ok_cases.iter().enumerate() {
+            pos.set_sfen(case.0).expect("failed to parse SFEN string");
+            assert!(pos.make_move(&Move::Drop {
+                            to: case.1,
+                            piece_type: PieceType::Pawn,
+                        })
+                        .is_ok(),
+                    "failed at #{}",
+                    i);
+        }
+    }
+
+    #[test]
+    fn uchifuzume() {
+        let ng_cases = [("9/9/7sp/6ppk/9/7G1/9/9/9 b P 1", Square::new(8, 4)),
+                        ("7nk/9/7S1/6b2/9/9/9/9/9 b P 1", Square::new(8, 1))];
+        let ok_cases = [("9/9/7pp/6psk/9/7G1/7N1/9/9 b P 1", Square::new(8, 4)),
+                        ("7nk/9/7Sg/6b2/9/9/9/9/9 b P 1", Square::new(8, 1)),
+                        ("9/8p/3pG1gp1/2p2kl1N/3P1p1s1/lPP6/2SGBP3/PK1S2+p2/LN7 w RSL3Prbg2n4p 1",
+                         Square::new(1, 6))];
+
+        let mut pos = Position::new();
+        for (i, case) in ng_cases.iter().enumerate() {
+            pos.set_sfen(case.0).expect("failed to parse SFEN string");
+            assert_eq!(Some(MoveError::Uchifuzume),
+                       pos.make_move(&Move::Drop {
+                               to: case.1,
+                               piece_type: PieceType::Pawn,
+                           })
+                           .err(),
+                       "failed at #{}",
+                       i);
+        }
+
+        for (i, case) in ok_cases.iter().enumerate() {
+            pos.set_sfen(case.0).expect("failed to parse SFEN string");
+            assert!(pos.make_move(&Move::Drop {
+                            to: case.1,
+                            piece_type: PieceType::Pawn,
+                        })
+                        .is_ok(),
+                    "failed at #{}",
+                    i);
+        }
+    }
+
+    #[test]
+    fn repetition() {
+        let mut pos = Position::new();
+        pos.set_sfen("ln7/ks+R6/pp7/9/9/9/9/9/9 b Ss 1")
+            .expect("failed to parse SFEN string");
+
+        for _ in 0..2 {
+            assert!(pos.make_drop_move(Square::new(2, 0), &PieceType::Silver).is_ok());
+            assert!(pos.make_drop_move(Square::new(2, 2), &PieceType::Silver).is_ok());
+            assert!(pos.make_normal_move(Square::new(2, 0), Square::new(1, 1), true)
+                .is_ok());
+            assert!(pos.make_normal_move(Square::new(2, 2), Square::new(1, 1), false)
+                .is_ok());
+        }
+
+        assert!(pos.make_drop_move(Square::new(2, 0), &PieceType::Silver).is_ok());
+        assert!(pos.make_drop_move(Square::new(2, 2), &PieceType::Silver).is_ok());
+        assert!(pos.make_normal_move(Square::new(2, 0), Square::new(1, 1), true)
+            .is_ok());
+        assert_eq!(Some(MoveError::Repetition),
+                   pos.make_normal_move(Square::new(2, 2), Square::new(1, 1), false).err());
+    }
+
+    #[test]
+    fn percetual_check() {
+        // Case 1. Starting from a check move.
+        let mut pos = Position::new();
+        pos.set_sfen("8l/6+P2/6+Rpk/8p/9/7S1/9/9/9 b - 1")
+            .expect("failed to parse SFEN string");
+
+        for _ in 0..2 {
+            assert!(pos.make_normal_move(Square::new(6, 2), Square::new(7, 1), false)
+                .is_ok());
+            assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 3), false).is_ok());
+            assert!(pos.make_normal_move(Square::new(7, 1), Square::new(6, 2), false).is_ok());
+            assert!(pos.make_normal_move(Square::new(7, 3), Square::new(8, 2), false).is_ok());
+        }
+        assert!(pos.make_normal_move(Square::new(6, 2), Square::new(7, 1), false)
+            .is_ok());
+        assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 3), false).is_ok());
+        assert!(pos.make_normal_move(Square::new(7, 1), Square::new(6, 2), false).is_ok());
+        assert_eq!(Some(MoveError::PerpetualCheckWin),
+                   pos.make_normal_move(Square::new(7, 3), Square::new(8, 2), false).err());
+
+        // Case 2. Starting from an escape move.
+        pos.set_sfen("6p1k/9/8+R/9/9/9/9/9/9 w - 1")
+            .expect("failed to parse SFEN string");
+
+        for _ in 0..2 {
+            assert!(pos.make_normal_move(Square::new(8, 0), Square::new(7, 0), false)
+                .is_ok());
+            assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 2), false).is_ok());
+            assert!(pos.make_normal_move(Square::new(7, 0), Square::new(8, 0), false).is_ok());
+            assert!(pos.make_normal_move(Square::new(7, 2), Square::new(8, 2), false).is_ok());
+        }
+        assert!(pos.make_normal_move(Square::new(8, 0), Square::new(7, 0), false)
+            .is_ok());
+        assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 2), false).is_ok());
+        assert!(pos.make_normal_move(Square::new(7, 0), Square::new(8, 0), false).is_ok());
+        assert_eq!(Some(MoveError::PerpetualCheckLose),
+                   pos.make_normal_move(Square::new(7, 2), Square::new(8, 2), false).err());
+    }
+
+    #[test]
+    fn unmake_move() {
+        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RG5gsnp 1";
+        let test_cases = [Move::Drop {
+                              to: Square::new(4, 4),
+                              piece_type: PieceType::Pawn,
+                          }];
+
+        let mut pos = Position::new();
+        for case in test_cases.iter() {
+            pos.set_sfen(base_sfen).expect("failed to parse SFEN string");
+            pos.make_move(&case).expect("failed to make a move");
+            pos.unmake_move().expect("failed to unmake a move");
+            assert_eq!(base_sfen, pos.to_sfen());
+        }
+    }
+
+    #[test]
+    fn set_sfen_normal() {
+        let mut pos = Position::new();
+
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .expect("failed to parse SFEN string");
+
+        let filled_squares = [(0, 0, PieceType::Lance, Color::White),
+                              (1, 0, PieceType::Knight, Color::White),
+                              (2, 0, PieceType::Silver, Color::White),
+                              (3, 0, PieceType::Gold, Color::White),
+                              (4, 0, PieceType::King, Color::White),
+                              (5, 0, PieceType::Gold, Color::White),
+                              (6, 0, PieceType::Silver, Color::White),
+                              (7, 0, PieceType::Knight, Color::White),
+                              (8, 0, PieceType::Lance, Color::White),
+                              (1, 1, PieceType::Rook, Color::White),
+                              (7, 1, PieceType::Bishop, Color::White),
+                              (0, 2, PieceType::Pawn, Color::White),
+                              (1, 2, PieceType::Pawn, Color::White),
+                              (2, 2, PieceType::Pawn, Color::White),
+                              (3, 2, PieceType::Pawn, Color::White),
+                              (4, 2, PieceType::Pawn, Color::White),
+                              (5, 2, PieceType::Pawn, Color::White),
+                              (6, 2, PieceType::Pawn, Color::White),
+                              (7, 2, PieceType::Pawn, Color::White),
+                              (8, 2, PieceType::Pawn, Color::White),
+                              (0, 6, PieceType::Pawn, Color::Black),
+                              (1, 6, PieceType::Pawn, Color::Black),
+                              (2, 6, PieceType::Pawn, Color::Black),
+                              (3, 6, PieceType::Pawn, Color::Black),
+                              (4, 6, PieceType::Pawn, Color::Black),
+                              (5, 6, PieceType::Pawn, Color::Black),
+                              (6, 6, PieceType::Pawn, Color::Black),
+                              (7, 6, PieceType::Pawn, Color::Black),
+                              (8, 6, PieceType::Pawn, Color::Black),
+                              (1, 7, PieceType::Bishop, Color::Black),
+                              (7, 7, PieceType::Rook, Color::Black),
+                              (0, 8, PieceType::Lance, Color::Black),
+                              (1, 8, PieceType::Knight, Color::Black),
+                              (2, 8, PieceType::Silver, Color::Black),
+                              (3, 8, PieceType::Gold, Color::Black),
+                              (4, 8, PieceType::King, Color::Black),
+                              (5, 8, PieceType::Gold, Color::Black),
+                              (6, 8, PieceType::Silver, Color::Black),
+                              (7, 8, PieceType::Knight, Color::Black),
+                              (8, 8, PieceType::Lance, Color::Black)];
+
+        let empty_squares = [(0, 1, 1), (2, 1, 5), (8, 1, 1), (0, 3, 8), (0, 4, 8), (0, 5, 8),
+                             (0, 7, 1), (2, 7, 5), (8, 7, 1)];
+
+        let hand_pieces = [(PieceType::Pawn, 0),
+                           (PieceType::Lance, 0),
+                           (PieceType::Knight, 0),
+                           (PieceType::Silver, 0),
+                           (PieceType::Gold, 0),
+                           (PieceType::Rook, 0),
+                           (PieceType::Bishop, 0)];
+
+        for case in filled_squares.iter() {
+            let (file, row, pt, c) = *case;
+            assert_eq!(Some(Piece {
+                           piece_type: pt,
+                           color: c,
+                       }),
+                       *pos.piece_at(Square::new(file, row)));
+        }
+
+        for case in empty_squares.iter() {
+            let (file, row, len) = *case;
+            for i in file..(file + len) {
+                assert_eq!(None, *pos.piece_at(Square::new(i, row)));
+            }
+        }
+
+        for case in hand_pieces.iter() {
+            let (pt, n) = *case;
+            assert_eq!(n,
+                       pos.hand(&Piece {
+                           piece_type: pt,
+                           color: Color::Black,
+                       }));
+            assert_eq!(n,
+                       pos.hand(&Piece {
+                           piece_type: pt,
+                           color: Color::White,
+                       }));
+        }
+
+        assert_eq!(Color::Black, pos.side_to_move());
+        assert_eq!(1, pos.ply());
+    }
+
+    #[test]
+    fn to_sfen() {
+        let test_cases = ["lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
+                          "lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p \
+                           1024"];
+
+        let mut pos = Position::new();
+        for case in test_cases.iter() {
+            pos.set_sfen(case)
+                .expect("failed to parse SFEN string");
+            assert_eq!(*case, pos.to_sfen());
+        }
+    }
+
+    #[test]
+    fn set_sfen_custom() {
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p 1024")
+            .expect("failed to parse SFEN string");
+
+        let filled_squares = [(0, 0, PieceType::Lance, Color::White),
+                              (1, 0, PieceType::Knight, Color::White),
+                              (2, 0, PieceType::Silver, Color::White),
+                              (3, 0, PieceType::Gold, Color::White),
+                              (4, 0, PieceType::King, Color::White),
+                              (5, 0, PieceType::ProLance, Color::Black),
+                              (6, 0, PieceType::Pawn, Color::White),
+                              (7, 0, PieceType::Knight, Color::White),
+                              (8, 0, PieceType::Lance, Color::White),
+                              (1, 1, PieceType::Pawn, Color::White),
+                              (7, 1, PieceType::ProBishop, Color::Black),
+                              (0, 2, PieceType::Pawn, Color::White),
+                              (2, 2, PieceType::ProPawn, Color::Black),
+                              (3, 2, PieceType::Pawn, Color::White),
+                              (4, 2, PieceType::Silver, Color::White),
+                              (6, 2, PieceType::Pawn, Color::White),
+                              (7, 2, PieceType::Pawn, Color::White),
+                              (8, 2, PieceType::Pawn, Color::White),
+                              (0, 6, PieceType::Pawn, Color::Black),
+                              (1, 6, PieceType::ProRook, Color::White),
+                              (3, 6, PieceType::Pawn, Color::Black),
+                              (4, 6, PieceType::Pawn, Color::Black),
+                              (5, 6, PieceType::Pawn, Color::White),
+                              (6, 6, PieceType::Pawn, Color::Black),
+                              (7, 6, PieceType::Pawn, Color::Black),
+                              (8, 6, PieceType::Pawn, Color::Black),
+                              (1, 7, PieceType::Rook, Color::Black),
+                              (0, 8, PieceType::Lance, Color::Black),
+                              (1, 8, PieceType::Knight, Color::Black),
+                              (2, 8, PieceType::Silver, Color::Black),
+                              (3, 8, PieceType::Gold, Color::Black),
+                              (4, 8, PieceType::King, Color::Black),
+                              (5, 8, PieceType::Gold, Color::Black),
+                              (6, 8, PieceType::Silver, Color::Black),
+                              (7, 8, PieceType::Knight, Color::Black)];
+
+        let empty_squares = [(0, 1, 1), (2, 1, 5), (8, 1, 1), (1, 2, 1), (5, 2, 1), (0, 3, 8),
+                             (0, 4, 8), (0, 5, 8), (2, 6, 1), (0, 7, 1), (2, 7, 6), (8, 8, 1)];
+
+        let hand_pieces = [(Piece {
+                                piece_type: PieceType::Pawn,
+                                color: Color::Black,
+                            },
+                            1),
+                           (Piece {
+                                piece_type: PieceType::Gold,
+                                color: Color::Black,
+                            },
+                            1),
+                           (Piece {
+                                piece_type: PieceType::Bishop,
+                                color: Color::Black,
+                            },
+                            1),
+                           (Piece {
+                                piece_type: PieceType::Pawn,
+                                color: Color::White,
+                            },
+                            2)];
+
+        for case in filled_squares.iter() {
+            let (file, row, pt, c) = *case;
+            assert_eq!(Some(Piece {
+                           piece_type: pt,
+                           color: c,
+                       }),
+                       *pos.piece_at(Square::new(file, row)));
+        }
+
+        for case in empty_squares.iter() {
+            let (file, row, len) = *case;
+            for i in file..(file + len) {
+                assert_eq!(None, *pos.piece_at(Square::new(i, row)));
+            }
+        }
+
+        for case in hand_pieces.iter() {
+            let (p, n) = *case;
+            assert_eq!(n, pos.hand(&p));
+        }
+
+        assert_eq!(Color::White, pos.side_to_move());
+        assert_eq!(1024, pos.ply());
+    }
+}

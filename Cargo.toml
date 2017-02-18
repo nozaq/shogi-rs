@@ -1,0 +1,6 @@
+[package]
+name = "shogi"
+version = "0.1.0"
+authors = ["Takashi Nozawa <nozazon@gmail.com>"]
+
+[dependencies]
