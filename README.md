@@ -1,6 +1,7 @@
 # shogi-rs
 
 [![Build Status](https://travis-ci.org/nozaq/shogi-rs.svg?branch=master)](https://travis-ci.org/nozaq/shogi-rs)
+[![Coverage Status](https://coveralls.io/repos/github/nozaq/shogi-rs/badge.svg?branch=master)](https://coveralls.io/github/nozaq/shogi-rs?branch=master)
 [![crates.io](https://img.shields.io/crates/v/shogi.svg)](https://crates.io/crates/shogi)
 [![docs.rs](https://docs.rs/shogi/badge.svg)](https://docs.rs/shogi)
 
