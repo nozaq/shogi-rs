@@ -177,8 +177,6 @@ mod tests {
 
     #[test]
     fn to_string() {
-        let one_sec = Duration::from_secs(1);
-
         let cases =
             [("gameover win", GuiCommand::GameOver(GameOverKind::Win)),
              ("gameover draw", GuiCommand::GameOver(GameOverKind::Draw)),

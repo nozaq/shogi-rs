@@ -11,7 +11,7 @@
 
 ```
 [dependencies]
-shogi = "0.1"
+shogi = "0.2"
 ```
 
 ## License
