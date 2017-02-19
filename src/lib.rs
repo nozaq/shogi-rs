@@ -38,6 +38,7 @@ mod piece;
 mod moves;
 mod hand;
 mod position;
+mod time;
 pub mod usi;
 
 pub use self::color::*;
@@ -48,3 +49,4 @@ pub use self::piece::*;
 pub use self::moves::*;
 pub use self::hand::*;
 pub use self::position::*;
+pub use self::time::*;
