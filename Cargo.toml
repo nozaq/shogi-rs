@@ -9,3 +9,4 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+itertools = "0.5.9"

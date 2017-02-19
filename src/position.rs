@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
+use itertools::Itertools;
+
 use {Color, Hand, Move, Piece, PieceType, Square, MoveError, SfenError};
 
 /// MoveRecord stores information necessary to undo the move.
@@ -53,10 +55,10 @@ impl PartialEq<Move> for MoveRecord {
 ///
 /// let mut pos = Position::new();
 /// pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").unwrap();
-/// 
+///
 /// let m = Move::Normal{from: Square::new(2, 6), to: Square::new(2, 5), promote: false};
 /// pos.make_move(&m).unwrap();
-/// 
+///
 /// assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f", pos.to_sfen());
 /// ```
 #[derive(Debug)]
@@ -163,7 +165,7 @@ impl Position {
     fn log_position(&mut self) {
         // TODO: SFEN string is used to represent a state of position, but any transformation which uniquely distinguish positions can be used here.
         // Consider light-weight option if generating SFEN string for each move is time-consuming.
-        let sfen = self.generate_sfen().split(" ").take(3).collect::<Vec<_>>().join(" ");
+        let sfen = self.generate_sfen().split(" ").take(3).join(" ");
         let in_check = self.in_check(self.side_to_move());
 
         let continuous_check = if in_check {
@@ -729,7 +731,6 @@ impl Position {
 
                 s
             })
-            .collect::<Vec<_>>()
             .join("/");
 
         let color = if self.side_to_move == Color::Black {
@@ -758,10 +759,8 @@ impl Position {
                             format!("{}{}", n, pc)
                         }
                     })
-                    .collect::<Vec<_>>()
                     .join("")
             })
-            .collect::<Vec<_>>()
             .join("");
 
         if hand.is_empty() {
