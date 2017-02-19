@@ -1,6 +1,6 @@
 [package]
 name = "shogi"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Takashi Nozawa <nozazon@gmail.com>"]
 description = "A library providing various types and implementations for representing concepts and rules in Shogi."
 keywords = ["shogi", "move", "usi", "sfen"]
