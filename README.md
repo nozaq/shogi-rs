@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/v/shogi.svg)](https://crates.io/crates/shogi)
 [![docs.rs](https://docs.rs/shogi/badge.svg)](https://docs.rs/shogi)
 
-[API Documentation](https://nozaq.github.io/shogi-rs)
+[Documentation](https://nozaq.github.io/shogi-rs)
 
 ## Usage
 
