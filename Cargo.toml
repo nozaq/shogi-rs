@@ -11,6 +11,7 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+bitintr = "0.1.17"
 itertools = "0.5.9"
 
 [badges]

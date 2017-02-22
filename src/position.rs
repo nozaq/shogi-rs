@@ -3,7 +3,6 @@ use std::fmt;
 use itertools::Itertools;
 
 use {Color, Hand, Move, Piece, PieceType, Square, MoveError, SfenError};
-use square::consts::*;
 
 /// MoveRecord stores information necessary to undo the move.
 #[derive(Debug)]
@@ -63,9 +62,8 @@ impl PartialEq<Move> for MoveRecord {
 ///
 /// assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f", pos.to_sfen());
 /// ```
-#[derive(Debug)]
 pub struct Position {
-    board: [[Option<Piece>; 9]; 9],
+    board: [Option<Piece>; 81],
     hand: Hand,
     ply: u16,
     side_to_move: Color,
@@ -89,12 +87,12 @@ impl Position {
 
     /// Returns a piece at the given square.
     pub fn piece_at(&self, sq: Square) -> &Option<Piece> {
-        &self.board[sq.rank() as usize][sq.file() as usize]
+        &self.board[sq.index()]
     }
 
     /// Sets a piece at the given square.
     pub fn set_piece(&mut self, sq: Square, p: Option<Piece>) {
-        self.board[sq.rank() as usize][sq.file() as usize] = p;
+        self.board[sq.index()] = p;
     }
 
     /// Returns the number of the given piece in hand.
@@ -222,9 +220,9 @@ impl Position {
             color: c,
         };
 
-        for sq in ALL_SQUARES.iter() {
-            if *self.piece_at(*sq) == Some(pc) {
-                return Some(*sq);
+        for sq in Square::iter() {
+            if *self.piece_at(sq) == Some(pc) {
+                return Some(sq);
             }
         }
 
@@ -543,8 +541,6 @@ impl Position {
 
     /// Returns a list of squares to where the given pieve at the given square can move.
     pub fn move_candidates(&self, sq: Square, p: &Piece) -> Vec<Square> {
-        use super::PieceType::*;
-
         let mut candidates = HashSet::new();
 
         let shift = |df: i8, mut dr: i8, candidates: &mut HashSet<Square>| {
@@ -575,32 +571,32 @@ impl Position {
         };
 
         match p.piece_type {
-            Pawn => shift(0, -1, &mut candidates),
-            Lance => ray(0, -1, &mut candidates),
-            Knight => {
+            PieceType::Pawn => shift(0, -1, &mut candidates),
+            PieceType::Lance => ray(0, -1, &mut candidates),
+            PieceType::Knight => {
                 shift(-1, -2, &mut candidates);
                 shift(1, -2, &mut candidates);
             }
-            Silver => {
+            PieceType::Silver => {
                 shift(-1, -1, &mut candidates);
                 shift(0, -1, &mut candidates);
                 shift(1, -1, &mut candidates);
                 shift(-1, 1, &mut candidates);
                 shift(1, 1, &mut candidates);
             }
-            Rook => {
+            PieceType::Rook => {
                 ray(0, -1, &mut candidates);
                 ray(0, 1, &mut candidates);
                 ray(1, 0, &mut candidates);
                 ray(-1, 0, &mut candidates);
             }
-            Bishop => {
+            PieceType::Bishop => {
                 ray(-1, -1, &mut candidates);
                 ray(-1, 1, &mut candidates);
                 ray(1, -1, &mut candidates);
                 ray(1, 1, &mut candidates);
             }
-            King => {
+            PieceType::King => {
                 shift(-1, -1, &mut candidates);
                 shift(0, -1, &mut candidates);
                 shift(1, -1, &mut candidates);
@@ -610,7 +606,7 @@ impl Position {
                 shift(0, 1, &mut candidates);
                 shift(1, 1, &mut candidates);
             }
-            ProRook => {
+            PieceType::ProRook => {
                 ray(0, -1, &mut candidates);
                 ray(0, 1, &mut candidates);
                 ray(1, 0, &mut candidates);
@@ -624,7 +620,7 @@ impl Position {
                 shift(0, 1, &mut candidates);
                 shift(1, 1, &mut candidates);
             }
-            ProBishop => {
+            PieceType::ProBishop => {
                 ray(-1, -1, &mut candidates);
                 ray(-1, 1, &mut candidates);
                 ray(1, -1, &mut candidates);
@@ -767,7 +763,7 @@ impl Position {
                                     return Err(SfenError {});
                                 }
 
-                                self.board[i][8 - j] = None;
+                                self.set_piece(Square::new(8 - j, i as u8).unwrap(), None);
 
                                 j += 1;
                             }
@@ -788,7 +784,7 @@ impl Position {
                                     }
                                 }
 
-                                self.board[i][8 - j] = Some(piece);
+                                self.set_piece(Square::new(8 - j, i as u8).unwrap(), Some(piece));
                                 j += 1;
 
                                 is_promoted = false;
@@ -845,15 +841,12 @@ impl Position {
     }
 
     fn generate_sfen(&self) -> String {
-        use super::PieceType::*;
-
-        let board = self.board
-            .iter()
+        let board = (0..9)
             .map(|row| {
                 let mut s = String::new();
                 let mut num_spaces = 0;
-                for board_item in row.iter().rev() {
-                    match *board_item {
+                for file in (0..9).rev() {
+                    match *self.piece_at(Square::new(file, row).unwrap()) {
                         Some(pc) => {
                             if num_spaces > 0 {
                                 s.push_str(&num_spaces.to_string());
@@ -865,6 +858,7 @@ impl Position {
                         None => num_spaces += 1,
                     }
                 }
+
                 if num_spaces > 0 {
                     s.push_str(&num_spaces.to_string());
                 }
@@ -882,11 +876,11 @@ impl Position {
         let mut hand = [Color::Black, Color::White]
             .iter()
             .map(|c| {
-                [Rook, Bishop, Gold, Silver, Knight, Lance, Pawn]
-                    .iter()
+                PieceType::iter()
+                    .filter(|pt| pt.is_hand_piece())
                     .map(|pt| {
                         let pc = Piece {
-                            piece_type: *pt,
+                            piece_type: pt,
                             color: *c,
                         };
                         let n = self.hand.get(&pc);
@@ -919,7 +913,7 @@ impl Default for Position {
     fn default() -> Position {
         Position {
             side_to_move: Color::Black,
-            board: Default::default(),
+            board: [None; 81],
             hand: Default::default(),
             ply: 1,
             move_history: Default::default(),
@@ -932,16 +926,18 @@ impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
         try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
-        for (i, row) in self.board.iter().enumerate() {
+
+        for row in 0..9 {
             try!(write!(f, "|"));
-            for piece in row.iter().rev() {
-                if let Some(ref piece) = *piece {
+            for file in (0..9).rev() {
+                if let Some(ref piece) = *self.piece_at(Square::new(file, row).unwrap()) {
                     try!(write!(f, "{:>3}|", piece.to_string()));
                 } else {
                     try!(write!(f, "   |"));
                 }
             }
-            try!(writeln!(f, " {}", (('a' as usize + i) as u8) as char));
+
+            try!(writeln!(f, " {}", (('a' as usize + row as usize) as u8) as char));
             try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
         }
 
@@ -984,6 +980,7 @@ impl fmt::Display for Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use square::consts::*;
 
     #[test]
     fn new() {
@@ -1021,12 +1018,12 @@ mod tests {
             .expect("failed to parse SFEN string");
 
         let mut sum = 0;
-        for sq in ALL_SQUARES.iter() {
-            let pc = pos.piece_at(*sq);
+        for sq in Square::iter() {
+            let pc = pos.piece_at(sq);
 
             if let Some(pc) = *pc {
                 if pc.color == pos.side_to_move() {
-                    sum += pos.move_candidates(*sq, &pc).len();
+                    sum += pos.move_candidates(sq, &pc).len();
                 }
             }
         }
