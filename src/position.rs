@@ -75,7 +75,6 @@ pub struct Position {
 // Type implementation
 /////////////////////////////////////////////////////////////////////////////
 
-// TODO Impasse check.
 impl Position {
     /// Creates a new instance of `Position` with an empty board.
     pub fn new() -> Position {
@@ -114,6 +113,82 @@ impl Position {
     /// Returns a history of all moves made since the beginning of the game.
     pub fn move_history(&self) -> &[MoveRecord] {
         &self.move_history
+    }
+
+    /// Checks if a player with the given color can declare winning.
+    ///
+    /// See the section 25 in http://www.computer-shogi.org/wcsc26/rule.pdf for more detail.
+    pub fn try_declare_winning(&self, c: Color) -> bool {
+        if c != self.side_to_move {
+            return false;
+        }
+
+        let king_pos = self.find_king(c);
+        if king_pos.is_none() {
+            return false;
+        }
+
+        let king_pos = king_pos.unwrap();
+        if king_pos.relative_rank(c) >= 3 {
+            return false;
+        }
+
+        let mut point = 0;
+        let mut count = 0;
+        for file in 0..9 {
+            let range = if c == Color::Black { 0..3 } else { 6..9 };
+
+            for rank in range {
+                let sq = Square::new(file, rank);
+                if let &Some(pc) = self.piece_at(sq) {
+                    if pc.color == c && pc.piece_type != PieceType::King {
+                        point += match pc.piece_type {
+                            PieceType::Rook | PieceType::Bishop | PieceType::ProRook |
+                            PieceType::ProBishop => 5,
+                            _ => 1,
+                        };
+                        count += 1;
+                    }
+                }
+            }
+        }
+
+        for pt in &[PieceType::Pawn,
+                    PieceType::Lance,
+                    PieceType::Knight,
+                    PieceType::Silver,
+                    PieceType::Gold,
+                    PieceType::Rook,
+                    PieceType::Bishop] {
+            let num = self.hand.get(&Piece {
+                piece_type: *pt,
+                color: c,
+            });
+            let pp = match *pt {
+                PieceType::Rook | PieceType::Bishop => 5,
+                _ => 1,
+            };
+
+            point += num * pp;
+        }
+
+        let lowerbound = match c {
+            Color::Black => 28,
+            Color::White => 27,
+        };
+        if point < lowerbound {
+            return false;
+        }
+
+        if count < 10 {
+            return false;
+        }
+
+        if self.in_check(c) {
+            return false;
+        }
+
+        true
     }
 
     /// Checks if the king with the given color is in check.
@@ -1091,6 +1166,56 @@ mod tests {
             pos.unmake_move().expect("failed to unmake a move");
             assert_eq!(base_sfen, pos.to_sfen());
         }
+    }
+
+    #[test]
+    fn try_declare_winning() {
+        let mut pos = Position::new();
+
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K7/+NG+N+NGG3/P+S+P+P+PS3/9/7s1/9/+b+rppp+p+s1+p/3+p1+bk2/9 b R4L7Pgnp 1")
+            .expect("failed to parse SFEN string");
+        assert!(pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K6l/1+N7/+PG2+Ns1p1/2+N5p/6p2/3+b4P/4+p+p+bs1/+r1s4+lk/1g1g3+r1 w \
+                       Gns2l11p 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K6l/1+N7/+PG2+Ns1p1/2+N5p/6p2/3+b4P/4+p+p+bs1/+r1s4+lk/1g1g3+r1 b \
+                       Gns2l11p 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K6l/1+N7/+PG2+Ns1p1/2+N5p/6p2/3+b4P/4+p+p+bs1/+r1s4+l1/1g1g3+r1 b \
+                       Gns2l11p 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K6l/1+N7/+PG2+Ns1p1/2+N5p/6p2/1k1+b4P/4+p+p+bs1/+r1s4+l1/1g1g3+r1 b \
+                       Gns2l11p 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K6l/1+N7/+PG2+Ns1p1/2+N5p/6p2/3+b4P/4+p+p+bs1/+r1s4+lk/1g1g3+rG w \
+                       ns2l11p 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
+
+        pos.set_sfen("1K6l/1+N7/+PG2+Ns1p1/2+N5p/6p2/3+b4P/5+p+bs1/+r1s4+lk/1g1g3+rG w ns2l12p 1")
+            .expect("failed to parse SFEN string");
+        assert!(!pos.try_declare_winning(Color::Black));
+        assert!(!pos.try_declare_winning(Color::White));
     }
 
     #[test]
