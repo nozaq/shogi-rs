@@ -8,7 +8,8 @@
 //! # Examples
 //!
 //! ```
-//! use shogi::{Color, Move, Position, Square};
+//! use shogi::{Move, Position};
+//! use shogi::square::consts::*;
 //!
 //! let mut pos = Position::new();
 //!
@@ -16,7 +17,7 @@
 //! pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").unwrap();
 //!
 //! // You can programatically create a Move instance.
-//! let m = Move::Normal{from: Square::new(2, 6), to: Square::new(2, 5), promote: false};
+//! let m = Move::Normal{from: SQ_7G, to: SQ_7F, promote: false};
 //! pos.make_move(&m).unwrap();
 //!
 //! // Move can be created from the SFEN formatted string as well.
@@ -26,27 +27,28 @@
 //! // Position can be converted back to the SFEN formatted string.
 //! assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f 7c7d", pos.to_sfen());
 //! ```
+#![recursion_limit="81"]
 
 #[macro_use()]
 extern crate itertools;
 
-mod color;
-mod error;
-mod square;
-mod piece_type;
-mod piece;
-mod moves;
-mod hand;
-mod position;
-mod time;
+pub mod color;
+pub mod error;
+pub mod square;
+pub mod piece_type;
+pub mod piece;
+pub mod moves;
+pub mod hand;
+pub mod position;
+pub mod time;
 pub mod usi;
 
-pub use self::color::*;
-pub use self::error::*;
-pub use self::square::*;
-pub use self::piece_type::*;
-pub use self::piece::*;
-pub use self::moves::*;
-pub use self::hand::*;
-pub use self::position::*;
-pub use self::time::*;
+pub use self::color::Color;
+pub use self::error::{MoveError, SfenError};
+pub use self::square::Square;
+pub use self::piece_type::PieceType;
+pub use self::piece::Piece;
+pub use self::moves::Move;
+pub use self::hand::Hand;
+pub use self::position::{MoveRecord, Position};
+pub use self::time::TimeControl;
