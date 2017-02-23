@@ -112,6 +112,7 @@ impl fmt::Display for Piece {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use square::consts::*;
 
     #[test]
     fn from_sfen() {
@@ -289,33 +290,33 @@ mod tests {
 
     #[test]
     fn is_placeable_at() {
-        let cases = [(0, 0, PieceType::Pawn, false, true),
-                     (0, 1, PieceType::Pawn, true, true),
-                     (0, 7, PieceType::Pawn, true, true),
-                     (0, 8, PieceType::Pawn, true, false),
-                     (0, 0, PieceType::Lance, false, true),
-                     (0, 1, PieceType::Lance, true, true),
-                     (0, 7, PieceType::Lance, true, true),
-                     (0, 8, PieceType::Lance, true, false),
-                     (0, 0, PieceType::Knight, false, true),
-                     (0, 1, PieceType::Knight, false, true),
-                     (0, 2, PieceType::Knight, true, true),
-                     (0, 6, PieceType::Knight, true, true),
-                     (0, 7, PieceType::Knight, true, false),
-                     (0, 8, PieceType::Knight, true, false)];
+        let cases = [(SQ_1A, PieceType::Pawn, false, true),
+                     (SQ_1B, PieceType::Pawn, true, true),
+                     (SQ_1H, PieceType::Pawn, true, true),
+                     (SQ_1I, PieceType::Pawn, true, false),
+                     (SQ_1A, PieceType::Lance, false, true),
+                     (SQ_1B, PieceType::Lance, true, true),
+                     (SQ_1H, PieceType::Lance, true, true),
+                     (SQ_1I, PieceType::Lance, true, false),
+                     (SQ_1A, PieceType::Knight, false, true),
+                     (SQ_1B, PieceType::Knight, false, true),
+                     (SQ_1C, PieceType::Knight, true, true),
+                     (SQ_1G, PieceType::Knight, true, true),
+                     (SQ_1H, PieceType::Knight, true, false),
+                     (SQ_1I, PieceType::Knight, true, false)];
 
         for case in cases.iter() {
-            let sq = Square::new(case.0, case.1);
+            let sq = case.0;
             let bpc = Piece {
-                piece_type: case.2,
+                piece_type: case.1,
                 color: Color::Black,
             };
             let wpc = Piece {
-                piece_type: case.2,
+                piece_type: case.1,
                 color: Color::White,
             };
-            assert_eq!(case.3, bpc.is_placeable_at(sq));
-            assert_eq!(case.4, wpc.is_placeable_at(sq));
+            assert_eq!(case.2, bpc.is_placeable_at(sq));
+            assert_eq!(case.3, wpc.is_placeable_at(sq));
         }
     }
 }
