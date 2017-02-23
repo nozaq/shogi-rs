@@ -67,24 +67,25 @@ impl fmt::Display for Move {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use square::consts::*;
 
     #[test]
     fn from_sfen() {
         let ok_cases = [("9a1i",
                          Move::Normal {
-                             from: Square::new(0, 0),
-                             to: Square::new(8, 8),
+                             from: SQ_9A,
+                             to: SQ_1I,
                              promote: false,
                          }),
                         ("9a1i+",
                          Move::Normal {
-                             from: Square::new(0, 0),
-                             to: Square::new(8, 8),
+                             from: SQ_9A,
+                             to: SQ_1I,
                              promote: true,
                          }),
                         ("S*5e",
                          Move::Drop {
-                             to: Square::new(4, 4),
+                             to: SQ_5E,
                              piece_type: PieceType::Silver,
                          })];
         let ng_cases = ["9j1i", "9a1j", "9a1", "9aj", "j1i", "9a1i1", "9a1i-", "S+5e", "S 5e",
@@ -105,19 +106,19 @@ mod tests {
     fn to_sfen() {
         let cases = [("9a1i",
                       Move::Normal {
-                          from: Square::new(0, 0),
-                          to: Square::new(8, 8),
+                          from: SQ_9A,
+                          to: SQ_1I,
                           promote: false,
                       }),
                      ("9a1i+",
                       Move::Normal {
-                          from: Square::new(0, 0),
-                          to: Square::new(8, 8),
+                          from: SQ_9A,
+                          to: SQ_1I,
                           promote: true,
                       }),
                      ("S*5e",
                       Move::Drop {
-                          to: Square::new(4, 4),
+                          to: SQ_5E,
                           piece_type: PieceType::Silver,
                       })];
 

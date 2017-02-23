@@ -3,6 +3,7 @@ use std::fmt;
 use itertools::Itertools;
 
 use {Color, Hand, Move, Piece, PieceType, Square, MoveError, SfenError};
+use square::consts::*;
 
 /// MoveRecord stores information necessary to undo the move.
 #[derive(Debug)]
@@ -51,12 +52,13 @@ impl PartialEq<Move> for MoveRecord {
 /// # Examples
 ///
 /// ```
-/// use shogi::{Move, Position, Square};
+/// use shogi::{Move, Position};
+/// use shogi::square::consts::*;
 ///
 /// let mut pos = Position::new();
 /// pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").unwrap();
 ///
-/// let m = Move::Normal{from: Square::new(2, 6), to: Square::new(2, 5), promote: false};
+/// let m = Move::Normal{from: SQ_7G, to: SQ_7F, promote: false};
 /// pos.make_move(&m).unwrap();
 ///
 /// assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f", pos.to_sfen());
@@ -139,7 +141,7 @@ impl Position {
             let range = if c == Color::Black { 0..3 } else { 6..9 };
 
             for rank in range {
-                let sq = Square::new(file, rank);
+                let sq = Square::new(file, rank).unwrap();
                 if let &Some(pc) = self.piece_at(sq) {
                     if pc.color == c && pc.piece_type != PieceType::King {
                         point += match pc.piece_type {
@@ -224,13 +226,10 @@ impl Position {
             piece_type: PieceType::King,
             color: c,
         };
-        for i in 0..9 {
-            for j in 0..9 {
-                let sq = Square::new(i, j);
 
-                if *self.piece_at(sq) == Some(pc) {
-                    return Some(sq);
-                }
+        for sq in ALL_SQUARES.iter() {
+            if *self.piece_at(*sq) == Some(pc) {
+                return Some(*sq);
             }
         }
 
@@ -369,7 +368,7 @@ impl Position {
         if pc.piece_type == PieceType::Pawn {
             // Nifu check.
             for i in 0..9 {
-                if let Some(fp) = *self.piece_at(Square::new(to.file(), i)) {
+                if let Some(fp) = *self.piece_at(Square::new(to.file(), i).unwrap()) {
                     if fp == pc {
                         return Err(MoveError::Nifu);
                     }
@@ -377,32 +376,34 @@ impl Position {
             }
 
             // Uchifuzume check.
-            let king_sq = to.shift(0, if stm == Color::Black { -1 } else { 1 });
-            if let Some(pc @ Piece { piece_type: PieceType::King, .. }) = *self.piece_at(king_sq) {
-                if pc.color == opponent {
-                    self.set_piece(king_sq, None);
+            if let Some(king_sq) = to.shift(0, if stm == Color::Black { -1 } else { 1 }) {
+                if let Some(pc @ Piece { piece_type: PieceType::King, .. }) =
+                    *self.piece_at(king_sq) {
+                    if pc.color == opponent {
+                        self.set_piece(king_sq, None);
 
-                    // TODO check if the piece is pinned.
-                    if !self.is_attacked_by(to, opponent) {
-                        self.set_piece(to, Some(pc));
+                        // TODO check if the piece is pinned.
+                        if !self.is_attacked_by(to, opponent) {
+                            self.set_piece(to, Some(pc));
 
-                        if self.move_candidates(king_sq, &pc).iter().all(|sq| {
-                            let pc = self.piece_at(*sq);
+                            if self.move_candidates(king_sq, &pc).iter().all(|sq| {
+                                let pc = self.piece_at(*sq);
 
-                            if let Some(pc) = *pc {
-                                if pc.color == opponent {
-                                    return true;
+                                if let Some(pc) = *pc {
+                                    if pc.color == opponent {
+                                        return true;
+                                    }
                                 }
+
+                                self.is_attacked_by(*sq, stm)
+                            }) {
+                                return Err(MoveError::Uchifuzume);
                             }
 
-                            self.is_attacked_by(*sq, stm)
-                        }) {
-                            return Err(MoveError::Uchifuzume);
+                            self.set_piece(to, None);
                         }
-
-                        self.set_piece(to, None);
+                        self.set_piece(king_sq, Some(pc));
                     }
-                    self.set_piece(king_sq, Some(pc));
                 }
             }
         }
@@ -488,7 +489,9 @@ impl Position {
                 dr *= -1;
             }
 
-            candidates.insert(sq.shift(df, dr));
+            if let Some(sq) = sq.shift(df, dr) {
+                candidates.insert(sq);
+            }
         };
 
         let ray = |df: i8, mut dr: i8, candidates: &mut HashSet<Square>| {
@@ -496,15 +499,15 @@ impl Position {
                 dr *= -1;
             }
 
-            let mut ptr = sq.shift(df, dr);
-            while ptr.is_valid() {
-                candidates.insert(ptr);
+            let mut ptr = sq;
+            while let Some(next) = ptr.shift(df, dr) {
+                candidates.insert(next);
 
-                if let Some(_) = *self.piece_at(ptr) {
+                if let Some(_) = *self.piece_at(next) {
                     break;
                 }
 
-                ptr = ptr.shift(df, dr);
+                ptr = next;
             }
         };
 
@@ -583,7 +586,6 @@ impl Position {
         };
 
         candidates.into_iter()
-            .filter(|sq| sq.is_valid())
             .filter(|&sq| match *self.piece_at(sq) {
                 Some(p2) => p2.color == p.color.flip(),
                 None => true,
@@ -702,7 +704,7 @@ impl Position {
                                     return Err(SfenError {});
                                 }
 
-                                self.board[i][j] = None;
+                                self.board[i][8 - j] = None;
 
                                 j += 1;
                             }
@@ -723,7 +725,7 @@ impl Position {
                                     }
                                 }
 
-                                self.board[i][j] = Some(piece);
+                                self.board[i][8 - j] = Some(piece);
                                 j += 1;
 
                                 is_promoted = false;
@@ -787,7 +789,7 @@ impl Position {
             .map(|row| {
                 let mut s = String::new();
                 let mut num_spaces = 0;
-                for board_item in row.iter() {
+                for board_item in row.iter().rev() {
                     match *board_item {
                         Some(pc) => {
                             if num_spaces > 0 {
@@ -869,7 +871,7 @@ impl fmt::Display for Position {
         try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
         for (i, row) in self.board.iter().enumerate() {
             try!(write!(f, "|"));
-            for piece in row.iter() {
+            for piece in row.iter().rev() {
                 if let Some(ref piece) = *piece {
                     try!(write!(f, "{:>3}|", piece.to_string()));
                 } else {
@@ -927,7 +929,7 @@ mod tests {
 
         for i in 0..9 {
             for j in 0..9 {
-                let sq = Square::new(i, j);
+                let sq = Square::new(i, j).unwrap();
                 assert_eq!(None, *pos.piece_at(sq));
             }
         }
@@ -957,15 +959,12 @@ mod tests {
             .expect("failed to parse SFEN string");
 
         let mut sum = 0;
-        for file in 0..9 {
-            for rank in 0..9 {
-                let sq = Square::new(file, rank);
-                let pc = pos.piece_at(sq);
+        for sq in ALL_SQUARES.iter() {
+            let pc = pos.piece_at(*sq);
 
-                if let Some(pc) = *pc {
-                    if pc.color == pos.side_to_move() {
-                        sum += pos.move_candidates(sq, &pc).len();
-                    }
+            if let Some(pc) = *pc {
+                if pc.color == pos.side_to_move() {
+                    sum += pos.move_candidates(*sq, &pc).len();
                 }
             }
         }
@@ -976,15 +975,15 @@ mod tests {
     #[test]
     fn make_normal_move() {
         let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
-        let test_cases = [(Square::new(7, 1), Square::new(7, 2), false, true),
-                          (Square::new(2, 2), Square::new(3, 4), false, true),
-                          (Square::new(6, 8), Square::new(5, 7), true, true),
-                          (Square::new(3, 5), Square::new(0, 8), true, true),
-                          (Square::new(7, 1), Square::new(7, 2), false, true),
-                          (Square::new(0, 2), Square::new(0, 3), false, false),
-                          (Square::new(0, 1), Square::new(1, 1), false, false),
-                          (Square::new(0, 1), Square::new(0, 3), false, false),
-                          (Square::new(7, 1), Square::new(7, 2), true, false)];
+        let test_cases = [(SQ_2B, SQ_2C, false, true),
+                          (SQ_7C, SQ_6E, false, true),
+                          (SQ_3I, SQ_4H, true, true),
+                          (SQ_6F, SQ_9I, true, true),
+                          (SQ_2B, SQ_2C, false, true),
+                          (SQ_9C, SQ_9D, false, false),
+                          (SQ_9B, SQ_8B, false, false),
+                          (SQ_9B, SQ_9D, false, false),
+                          (SQ_2B, SQ_2C, true, false)];
 
         let mut pos = Position::new();
         for case in test_cases.iter() {
@@ -994,19 +993,19 @@ mod tests {
 
         // Leaving the checked king is illegal.
         pos.set_sfen("9/3r5/9/9/6B2/9/9/9/3K5 b P 1").expect("failed to parse SFEN string");
-        assert!(pos.make_normal_move(Square::new(3, 8), Square::new(3, 7), false).is_err());
-        assert!(pos.make_normal_move(Square::new(3, 8), Square::new(2, 8), false).is_ok());
+        assert!(pos.make_normal_move(SQ_6I, SQ_6H, false).is_err());
+        assert!(pos.make_normal_move(SQ_6I, SQ_7I, false).is_ok());
     }
 
     #[test]
     fn make_drop_move() {
         let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
-        let test_cases = [(Square::new(4, 4), PieceType::Pawn, true),
-                          (Square::new(4, 4), PieceType::Rook, false),
-                          (Square::new(0, 0), PieceType::Pawn, false),
-                          (Square::new(3, 5), PieceType::Pawn, false),
-                          (Square::new(0, 1), PieceType::Pawn, false),
-                          (Square::new(4, 8), PieceType::Pawn, false)];
+        let test_cases = [(SQ_5E, PieceType::Pawn, true),
+                          (SQ_5E, PieceType::Rook, false),
+                          (SQ_9A, PieceType::Pawn, false),
+                          (SQ_6F, PieceType::Pawn, false),
+                          (SQ_9B, PieceType::Pawn, false),
+                          (SQ_5I, PieceType::Pawn, false)];
 
         let mut pos = Position::new();
         for case in test_cases.iter() {
@@ -1024,10 +1023,10 @@ mod tests {
     fn nifu() {
         let ng_cases = [("ln1g5/1ks1g3l/1p2p1n2/p1pGs2rp/1P1N1ppp1/P1SB1P2P/1S1p1bPP1/LKG6/4R2NL \
                           w 2Pp 91",
-                         Square::new(3, 2))];
+                         SQ_6C)];
         let ok_cases = [("ln1g5/1ks1g3l/1p2p1n2/p1pGs2rp/1P1N1ppp1/P1SB1P2P/1S1+p1bPP1/LKG6/4R2NL \
                           w 2Pp 91",
-                         Square::new(3, 2))];
+                         SQ_6C)];
 
         let mut pos = Position::new();
         for (i, case) in ng_cases.iter().enumerate() {
@@ -1056,12 +1055,12 @@ mod tests {
 
     #[test]
     fn uchifuzume() {
-        let ng_cases = [("9/9/7sp/6ppk/9/7G1/9/9/9 b P 1", Square::new(8, 4)),
-                        ("7nk/9/7S1/6b2/9/9/9/9/9 b P 1", Square::new(8, 1))];
-        let ok_cases = [("9/9/7pp/6psk/9/7G1/7N1/9/9 b P 1", Square::new(8, 4)),
-                        ("7nk/9/7Sg/6b2/9/9/9/9/9 b P 1", Square::new(8, 1)),
+        let ng_cases = [("9/9/7sp/6ppk/9/7G1/9/9/9 b P 1", SQ_1E),
+                        ("7nk/9/7S1/6b2/9/9/9/9/9 b P 1", SQ_1B)];
+        let ok_cases = [("9/9/7pp/6psk/9/7G1/7N1/9/9 b P 1", SQ_1E),
+                        ("7nk/9/7Sg/6b2/9/9/9/9/9 b P 1", SQ_1B),
                         ("9/8p/3pG1gp1/2p2kl1N/3P1p1s1/lPP6/2SGBP3/PK1S2+p2/LN7 w RSL3Prbg2n4p 1",
-                         Square::new(1, 6))];
+                         SQ_8G)];
 
         let mut pos = Position::new();
         for (i, case) in ng_cases.iter().enumerate() {
@@ -1095,20 +1094,21 @@ mod tests {
             .expect("failed to parse SFEN string");
 
         for _ in 0..2 {
-            assert!(pos.make_drop_move(Square::new(2, 0), &PieceType::Silver).is_ok());
-            assert!(pos.make_drop_move(Square::new(2, 2), &PieceType::Silver).is_ok());
-            assert!(pos.make_normal_move(Square::new(2, 0), Square::new(1, 1), true)
+            assert!(pos.make_drop_move(SQ_7A, &PieceType::Silver).is_ok());
+            assert!(pos.make_drop_move(SQ_7C, &PieceType::Silver).is_ok());
+            assert!(pos.make_normal_move(SQ_7A, SQ_8B, true)
                 .is_ok());
-            assert!(pos.make_normal_move(Square::new(2, 2), Square::new(1, 1), false)
+            assert!(pos.make_normal_move(SQ_7C, SQ_8B, false)
                 .is_ok());
         }
 
-        assert!(pos.make_drop_move(Square::new(2, 0), &PieceType::Silver).is_ok());
-        assert!(pos.make_drop_move(Square::new(2, 2), &PieceType::Silver).is_ok());
-        assert!(pos.make_normal_move(Square::new(2, 0), Square::new(1, 1), true)
+        assert!(pos.make_drop_move(SQ_7A, &PieceType::Silver).is_ok());
+        assert!(pos.make_drop_move(SQ_7C, &PieceType::Silver).is_ok());
+        assert!(pos.make_normal_move(SQ_7A, SQ_8B, true)
             .is_ok());
         assert_eq!(Some(MoveError::Repetition),
-                   pos.make_normal_move(Square::new(2, 2), Square::new(1, 1), false).err());
+                   pos.make_normal_move(SQ_7C, SQ_8B, false)
+                       .err());
     }
 
     #[test]
@@ -1119,43 +1119,55 @@ mod tests {
             .expect("failed to parse SFEN string");
 
         for _ in 0..2 {
-            assert!(pos.make_normal_move(Square::new(6, 2), Square::new(7, 1), false)
+            assert!(pos.make_normal_move(SQ_3C, SQ_2B, false)
                 .is_ok());
-            assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 3), false).is_ok());
-            assert!(pos.make_normal_move(Square::new(7, 1), Square::new(6, 2), false).is_ok());
-            assert!(pos.make_normal_move(Square::new(7, 3), Square::new(8, 2), false).is_ok());
+            assert!(pos.make_normal_move(SQ_1C, SQ_2D, false)
+                .is_ok());
+            assert!(pos.make_normal_move(SQ_2B, SQ_3C, false)
+                .is_ok());
+            assert!(pos.make_normal_move(SQ_2D, SQ_1C, false)
+                .is_ok());
         }
-        assert!(pos.make_normal_move(Square::new(6, 2), Square::new(7, 1), false)
+        assert!(pos.make_normal_move(SQ_3C, SQ_2B, false)
             .is_ok());
-        assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 3), false).is_ok());
-        assert!(pos.make_normal_move(Square::new(7, 1), Square::new(6, 2), false).is_ok());
+        assert!(pos.make_normal_move(SQ_1C, SQ_2D, false)
+            .is_ok());
+        assert!(pos.make_normal_move(SQ_2B, SQ_3C, false)
+            .is_ok());
         assert_eq!(Some(MoveError::PerpetualCheckWin),
-                   pos.make_normal_move(Square::new(7, 3), Square::new(8, 2), false).err());
+                   pos.make_normal_move(SQ_2D, SQ_1C, false)
+                       .err());
 
         // Case 2. Starting from an escape move.
         pos.set_sfen("6p1k/9/8+R/9/9/9/9/9/9 w - 1")
             .expect("failed to parse SFEN string");
 
         for _ in 0..2 {
-            assert!(pos.make_normal_move(Square::new(8, 0), Square::new(7, 0), false)
+            assert!(pos.make_normal_move(SQ_1A, SQ_2A, false)
                 .is_ok());
-            assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 2), false).is_ok());
-            assert!(pos.make_normal_move(Square::new(7, 0), Square::new(8, 0), false).is_ok());
-            assert!(pos.make_normal_move(Square::new(7, 2), Square::new(8, 2), false).is_ok());
+            assert!(pos.make_normal_move(SQ_1C, SQ_2C, false)
+                .is_ok());
+            assert!(pos.make_normal_move(SQ_2A, SQ_1A, false)
+                .is_ok());
+            assert!(pos.make_normal_move(SQ_2C, SQ_1C, false)
+                .is_ok());
         }
-        assert!(pos.make_normal_move(Square::new(8, 0), Square::new(7, 0), false)
+        assert!(pos.make_normal_move(SQ_1A, SQ_2A, false)
             .is_ok());
-        assert!(pos.make_normal_move(Square::new(8, 2), Square::new(7, 2), false).is_ok());
-        assert!(pos.make_normal_move(Square::new(7, 0), Square::new(8, 0), false).is_ok());
+        assert!(pos.make_normal_move(SQ_1C, SQ_2C, false)
+            .is_ok());
+        assert!(pos.make_normal_move(SQ_2A, SQ_1A, false)
+            .is_ok());
         assert_eq!(Some(MoveError::PerpetualCheckLose),
-                   pos.make_normal_move(Square::new(7, 2), Square::new(8, 2), false).err());
+                   pos.make_normal_move(SQ_2C, SQ_1C, false)
+                       .err());
     }
 
     #[test]
     fn unmake_move() {
         let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RG5gsnp 1";
         let test_cases = [Move::Drop {
-                              to: Square::new(4, 4),
+                              to: SQ_5E,
                               piece_type: PieceType::Pawn,
                           }];
 
@@ -1234,8 +1246,8 @@ mod tests {
                               (6, 0, PieceType::Silver, Color::White),
                               (7, 0, PieceType::Knight, Color::White),
                               (8, 0, PieceType::Lance, Color::White),
-                              (1, 1, PieceType::Rook, Color::White),
-                              (7, 1, PieceType::Bishop, Color::White),
+                              (7, 1, PieceType::Rook, Color::White),
+                              (1, 1, PieceType::Bishop, Color::White),
                               (0, 2, PieceType::Pawn, Color::White),
                               (1, 2, PieceType::Pawn, Color::White),
                               (2, 2, PieceType::Pawn, Color::White),
@@ -1254,8 +1266,8 @@ mod tests {
                               (6, 6, PieceType::Pawn, Color::Black),
                               (7, 6, PieceType::Pawn, Color::Black),
                               (8, 6, PieceType::Pawn, Color::Black),
-                              (1, 7, PieceType::Bishop, Color::Black),
-                              (7, 7, PieceType::Rook, Color::Black),
+                              (7, 7, PieceType::Bishop, Color::Black),
+                              (1, 7, PieceType::Rook, Color::Black),
                               (0, 8, PieceType::Lance, Color::Black),
                               (1, 8, PieceType::Knight, Color::Black),
                               (2, 8, PieceType::Silver, Color::Black),
@@ -1266,7 +1278,7 @@ mod tests {
                               (7, 8, PieceType::Knight, Color::Black),
                               (8, 8, PieceType::Lance, Color::Black)];
 
-        let empty_squares = [(0, 1, 1), (2, 1, 5), (8, 1, 1), (0, 3, 8), (0, 4, 8), (0, 5, 8),
+        let empty_squares = [(0, 1, 1), (2, 1, 5), (8, 1, 1), (0, 3, 9), (0, 4, 9), (0, 5, 9),
                              (0, 7, 1), (2, 7, 5), (8, 7, 1)];
 
         let hand_pieces = [(PieceType::Pawn, 0),
@@ -1283,13 +1295,13 @@ mod tests {
                            piece_type: pt,
                            color: c,
                        }),
-                       *pos.piece_at(Square::new(file, row)));
+                       *pos.piece_at(Square::new(file, row).unwrap()));
         }
 
         for case in empty_squares.iter() {
             let (file, row, len) = *case;
             for i in file..(file + len) {
-                assert_eq!(None, *pos.piece_at(Square::new(i, row)));
+                assert_eq!(None, *pos.piece_at(Square::new(i, row).unwrap()));
             }
         }
 
@@ -1331,44 +1343,44 @@ mod tests {
         pos.set_sfen("lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p 1024")
             .expect("failed to parse SFEN string");
 
-        let filled_squares = [(0, 0, PieceType::Lance, Color::White),
-                              (1, 0, PieceType::Knight, Color::White),
-                              (2, 0, PieceType::Silver, Color::White),
-                              (3, 0, PieceType::Gold, Color::White),
-                              (4, 0, PieceType::King, Color::White),
-                              (5, 0, PieceType::ProLance, Color::Black),
-                              (6, 0, PieceType::Pawn, Color::White),
+        let filled_squares = [(8, 0, PieceType::Lance, Color::White),
                               (7, 0, PieceType::Knight, Color::White),
-                              (8, 0, PieceType::Lance, Color::White),
-                              (1, 1, PieceType::Pawn, Color::White),
-                              (7, 1, PieceType::ProBishop, Color::Black),
-                              (0, 2, PieceType::Pawn, Color::White),
-                              (2, 2, PieceType::ProPawn, Color::Black),
-                              (3, 2, PieceType::Pawn, Color::White),
-                              (4, 2, PieceType::Silver, Color::White),
-                              (6, 2, PieceType::Pawn, Color::White),
-                              (7, 2, PieceType::Pawn, Color::White),
+                              (6, 0, PieceType::Silver, Color::White),
+                              (5, 0, PieceType::Gold, Color::White),
+                              (4, 0, PieceType::King, Color::White),
+                              (3, 0, PieceType::ProLance, Color::Black),
+                              (2, 0, PieceType::Pawn, Color::White),
+                              (1, 0, PieceType::Knight, Color::White),
+                              (0, 0, PieceType::Lance, Color::White),
+                              (7, 1, PieceType::Pawn, Color::White),
+                              (1, 1, PieceType::ProBishop, Color::Black),
                               (8, 2, PieceType::Pawn, Color::White),
-                              (0, 6, PieceType::Pawn, Color::Black),
-                              (1, 6, PieceType::ProRook, Color::White),
-                              (3, 6, PieceType::Pawn, Color::Black),
-                              (4, 6, PieceType::Pawn, Color::Black),
-                              (5, 6, PieceType::Pawn, Color::White),
-                              (6, 6, PieceType::Pawn, Color::Black),
-                              (7, 6, PieceType::Pawn, Color::Black),
+                              (6, 2, PieceType::ProPawn, Color::Black),
+                              (5, 2, PieceType::Pawn, Color::White),
+                              (4, 2, PieceType::Silver, Color::White),
+                              (2, 2, PieceType::Pawn, Color::White),
+                              (1, 2, PieceType::Pawn, Color::White),
+                              (0, 2, PieceType::Pawn, Color::White),
                               (8, 6, PieceType::Pawn, Color::Black),
-                              (1, 7, PieceType::Rook, Color::Black),
-                              (0, 8, PieceType::Lance, Color::Black),
-                              (1, 8, PieceType::Knight, Color::Black),
-                              (2, 8, PieceType::Silver, Color::Black),
-                              (3, 8, PieceType::Gold, Color::Black),
-                              (4, 8, PieceType::King, Color::Black),
-                              (5, 8, PieceType::Gold, Color::Black),
+                              (7, 6, PieceType::ProRook, Color::White),
+                              (5, 6, PieceType::Pawn, Color::Black),
+                              (4, 6, PieceType::Pawn, Color::Black),
+                              (3, 6, PieceType::Pawn, Color::White),
+                              (2, 6, PieceType::Pawn, Color::Black),
+                              (1, 6, PieceType::Pawn, Color::Black),
+                              (0, 6, PieceType::Pawn, Color::Black),
+                              (7, 7, PieceType::Rook, Color::Black),
+                              (8, 8, PieceType::Lance, Color::Black),
+                              (7, 8, PieceType::Knight, Color::Black),
                               (6, 8, PieceType::Silver, Color::Black),
-                              (7, 8, PieceType::Knight, Color::Black)];
+                              (5, 8, PieceType::Gold, Color::Black),
+                              (4, 8, PieceType::King, Color::Black),
+                              (3, 8, PieceType::Gold, Color::Black),
+                              (2, 8, PieceType::Silver, Color::Black),
+                              (1, 8, PieceType::Knight, Color::Black)];
 
-        let empty_squares = [(0, 1, 1), (2, 1, 5), (8, 1, 1), (1, 2, 1), (5, 2, 1), (0, 3, 8),
-                             (0, 4, 8), (0, 5, 8), (2, 6, 1), (0, 7, 1), (2, 7, 6), (8, 8, 1)];
+        let empty_squares = [(0, 1, 1), (2, 1, 5), (8, 1, 1), (3, 2, 1), (7, 2, 1), (0, 3, 9),
+                             (0, 4, 9), (0, 5, 9), (6, 6, 1), (0, 7, 7), (8, 7, 1), (0, 8, 1)];
 
         let hand_pieces = [(Piece {
                                 piece_type: PieceType::Pawn,
@@ -1397,13 +1409,13 @@ mod tests {
                            piece_type: pt,
                            color: c,
                        }),
-                       *pos.piece_at(Square::new(file, row)));
+                       *pos.piece_at(Square::new(file, row).unwrap()));
         }
 
         for case in empty_squares.iter() {
             let (file, row, len) = *case;
             for i in file..(file + len) {
-                assert_eq!(None, *pos.piece_at(Square::new(i, row)));
+                assert_eq!(None, *pos.piece_at(Square::new(i, row).unwrap()));
             }
         }
 

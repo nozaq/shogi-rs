@@ -13,8 +13,7 @@ const ASCII_LOWER_I: u8 = 'i' as u8;
 /// ```
 /// use shogi::Square;
 ///
-/// // (4, 4) represents 5e.
-/// let sq = Square::new(4, 4);
+/// let sq = Square::new(4, 4).unwrap();
 /// assert_eq!("5e", sq.to_string());
 /// ```
 ///
@@ -34,9 +33,14 @@ pub struct Square {
 
 impl Square {
     /// Creates a new instance of `Square`.
-    /// `file` and `rank` need to be lower than 9 the returned instance to be valid value.
-    pub fn new(file: u8, rank: u8) -> Square {
-        Square { inner: file | rank << 4 }
+    ///
+    /// `file` can take a value from 0('1') to 8('9'), while `rank` is from 0('a') to 9('i').
+    pub fn new(file: u8, rank: u8) -> Option<Square> {
+        if file > 8 || rank > 8 {
+            return None;
+        }
+
+        Some(Square { inner: file * 9 + rank })
     }
 
     /// Creates a new instance of `Square` from SFEN formatted string.
@@ -48,7 +52,7 @@ impl Square {
             return None;
         }
 
-        let file = ASCII_9 - bytes[0];
+        let file = bytes[0] - ASCII_1;
         let rank = bytes[1] - ASCII_LOWER_A;
 
         debug_assert!(file < 9 && rank < 9,
@@ -57,34 +61,17 @@ impl Square {
                       file,
                       rank);
 
-        Some(Square::new(file, rank))
+        Some(Square { inner: file * 9 + rank })
     }
 
     /// Returns a file of the square.
     pub fn file(&self) -> u8 {
-        self.inner & 0x0F
+        self.inner / 9
     }
 
     /// Returns a rank of the square.
     pub fn rank(&self) -> u8 {
-        self.inner >> 4
-    }
-
-    /// Tests if both the file and the rank are valid values.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use shogi::Square;
-    ///
-    /// assert!(Square::new(0, 0).is_valid());
-    /// assert!(!Square::new(9, 9).is_valid());
-    /// ```
-    pub fn is_valid(&self) -> bool {
-        let f = self.file();
-        let r = self.rank();
-
-        f < 9 && r < 9
+        self.inner % 9
     }
 
     /// Returns a new `Square` instance by moving the file and the rank values.
@@ -92,17 +79,23 @@ impl Square {
     /// # Examples
     ///
     /// ```
-    /// use shogi::Square;
+    /// use shogi::square::consts::*;
     ///
-    /// let sq = Square::new(1, 1);
-    /// let shifted = sq.shift(2, 3);
+    /// let sq = SQ_2B;
+    /// let shifted = sq.shift(2, 3).unwrap();
     ///
     /// assert_eq!(3, shifted.file());
     /// assert_eq!(4, shifted.rank());
     /// ```
-    pub fn shift(&self, df: i8, dr: i8) -> Square {
-        Square::new((self.file() as i8 + df) as u8,
-                    (self.rank() as i8 + dr) as u8)
+    pub fn shift(&self, df: i8, dr: i8) -> Option<Square> {
+        let f = self.file() as i8 + df;
+        let r = self.rank() as i8 + dr;
+
+        if f < 0 || f > 8 || r < 0 || r > 8 {
+            return None;
+        }
+
+        Some(Square { inner: (f * 9 + r) as u8 })
     }
 
     /// Returns a relative rank as if the specified color is black.
@@ -110,9 +103,10 @@ impl Square {
     /// # Examples
     ///
     /// ```
-    /// use shogi::{Color, Square};
+    /// use shogi::Color;
+    /// use shogi::square::consts::*;
     ///
-    /// let sq = Square::new(0, 6);
+    /// let sq = SQ_1G;
     ///
     /// assert_eq!(6, sq.relative_rank(Color::Black));
     /// assert_eq!(2, sq.relative_rank(Color::White));
@@ -138,20 +132,50 @@ impl fmt::Display for Square {
                       self);
         write!(f,
                "{}{}",
-               (ASCII_9 - self.file()) as char,
+               (self.file() + ASCII_1) as char,
                (self.rank() + ASCII_LOWER_A) as char)
     }
+}
+
+pub mod consts {
+    use super::Square;
+
+    macro_rules! make_square {
+        {0, $t:ident $($ts:ident)+} => {
+            pub const $t: Square = Square { inner: 0 };
+            make_square!{1, $($ts)*}
+            pub const ALL_SQUARES: [Square; 81] = [$t, $($ts),*];
+        };
+        {$n:expr, $t:ident $($ts:ident)+} => {
+            pub const $t: Square = Square { inner: $n };
+            make_square!{($n + 1), $($ts)*}
+        };
+        {$n:expr, $t:ident} => {
+            pub const $t: Square = Square { inner: $n };
+        };
+    }
+
+    make_square!{0, SQ_1A SQ_1B SQ_1C SQ_1D SQ_1E SQ_1F SQ_1G SQ_1H SQ_1I
+                    SQ_2A SQ_2B SQ_2C SQ_2D SQ_2E SQ_2F SQ_2G SQ_2H SQ_2I
+                    SQ_3A SQ_3B SQ_3C SQ_3D SQ_3E SQ_3F SQ_3G SQ_3H SQ_3I
+                    SQ_4A SQ_4B SQ_4C SQ_4D SQ_4E SQ_4F SQ_4G SQ_4H SQ_4I
+                    SQ_5A SQ_5B SQ_5C SQ_5D SQ_5E SQ_5F SQ_5G SQ_5H SQ_5I
+                    SQ_6A SQ_6B SQ_6C SQ_6D SQ_6E SQ_6F SQ_6G SQ_6H SQ_6I
+                    SQ_7A SQ_7B SQ_7C SQ_7D SQ_7E SQ_7F SQ_7G SQ_7H SQ_7I
+                    SQ_8A SQ_8B SQ_8C SQ_8D SQ_8E SQ_8F SQ_8G SQ_8H SQ_8I
+                    SQ_9A SQ_9B SQ_9C SQ_9D SQ_9E SQ_9F SQ_9G SQ_9H SQ_9I}
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::consts::*;
 
     #[test]
     fn new() {
         for file in 0..9 {
             for rank in 0..9 {
-                let sq = Square::new(file, rank);
+                let sq = Square::new(file, rank).unwrap();
                 assert_eq!(file, sq.file());
                 assert_eq!(rank, sq.rank());
             }
@@ -160,7 +184,7 @@ mod tests {
 
     #[test]
     fn from_sfen() {
-        let ok_cases = [("9a", 0, 0), ("1a", 8, 0), ("5e", 4, 4), ("9i", 0, 8), ("1i", 8, 8)];
+        let ok_cases = [("9a", 8, 0), ("1a", 0, 0), ("5e", 4, 4), ("9i", 8, 8), ("1i", 0, 8)];
         let ng_cases = ["", "9j", "_a", "a9", "9 ", " a", "9", "foo"];
 
         for case in ok_cases.iter() {
@@ -179,48 +203,36 @@ mod tests {
 
     #[test]
     fn to_sfen() {
-        let cases = [("9a", 0, 0), ("1a", 8, 0), ("5e", 4, 4), ("9i", 0, 8), ("1i", 8, 8)];
+        let cases = [("9a", 8, 0), ("1a", 0, 0), ("5e", 4, 4), ("9i", 8, 8), ("1i", 0, 8)];
 
         for case in cases.iter() {
-            let sq = Square::new(case.1, case.2);
+            let sq = Square::new(case.1, case.2).unwrap();
             assert_eq!(case.0, sq.to_string());
         }
     }
 
     #[test]
-    fn is_valid() {
-        let cases = [(0, 0, true),
-                     (8, 0, true),
-                     (4, 4, true),
-                     (0, 8, true),
-                     (8, 8, true),
-                     (9, 0, false),
-                     (0, 9, false),
-                     (9, 9, false),
-                     (255, 255, false)];
-
-        for case in cases.iter() {
-            let sq = Square::new(case.0, case.1);
-            assert_eq!(case.2, sq.is_valid());
-        }
-    }
-
-    #[test]
     fn shift() {
-        let sq = Square::new(4, 4);
+        let sq = consts::SQ_5E;
 
-        let cases = [(-4, -4, 0, 0),
-                     (-4, 0, 0, 4),
-                     (0, -4, 4, 0),
-                     (0, 0, 4, 4),
-                     (4, 0, 8, 4),
-                     (0, 4, 4, 8),
-                     (4, 4, 8, 8)];
+        let ok_cases = [(-4, -4, 0, 0),
+                        (-4, 0, 0, 4),
+                        (0, -4, 4, 0),
+                        (0, 0, 4, 4),
+                        (4, 0, 8, 4),
+                        (0, 4, 4, 8),
+                        (4, 4, 8, 8)];
 
-        for case in cases.iter() {
-            let shifted = sq.shift(case.0, case.1);
+        let ng_cases = [(-5, -4), (-4, -5), (5, 0), (0, 5)];
+
+        for case in ok_cases.iter() {
+            let shifted = sq.shift(case.0, case.1).unwrap();
             assert_eq!(case.2, shifted.file());
             assert_eq!(case.3, shifted.rank());
+        }
+
+        for case in ng_cases.iter() {
+            assert!(sq.shift(case.0, case.1).is_none());
         }
     }
 
@@ -237,7 +249,7 @@ mod tests {
                      (0, 8, 8, 0)];
 
         for case in cases.iter() {
-            let sq = Square::new(case.0, case.1);
+            let sq = Square::new(case.0, case.1).unwrap();
             assert_eq!(case.2, sq.relative_rank(Color::Black));
             assert_eq!(case.3, sq.relative_rank(Color::White));
         }
@@ -256,9 +268,17 @@ mod tests {
                      (0, 8, false, true)];
 
         for case in cases.iter() {
-            let sq = Square::new(case.0, case.1);
+            let sq = Square::new(case.0, case.1).unwrap();
             assert_eq!(case.2, sq.in_promotion_zone(Color::Black));
             assert_eq!(case.3, sq.in_promotion_zone(Color::White));
+        }
+    }
+
+    #[test]
+    fn consts() {
+        for (i, sq) in ALL_SQUARES.iter().enumerate() {
+            assert_eq!((i / 9) as u8, sq.file());
+            assert_eq!((i % 9) as u8, sq.rank());
         }
     }
 }
