@@ -34,12 +34,12 @@ extern crate itertools;
 
 pub mod color;
 pub mod error;
-pub mod square;
+pub mod hand;
+pub mod moves;
 pub mod piece_type;
 pub mod piece;
-pub mod moves;
-pub mod hand;
 pub mod position;
+pub mod square;
 pub mod time;
 pub mod usi;
 
