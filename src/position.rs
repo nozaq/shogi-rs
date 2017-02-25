@@ -155,24 +155,18 @@ impl Position {
             }
         }
 
-        for pt in &[PieceType::Pawn,
-                    PieceType::Lance,
-                    PieceType::Knight,
-                    PieceType::Silver,
-                    PieceType::Gold,
-                    PieceType::Rook,
-                    PieceType::Bishop] {
+        point += PieceType::iter().filter(|pt| pt.is_hand_piece()).fold(0, |acc, pt| {
             let num = self.hand.get(&Piece {
-                piece_type: *pt,
+                piece_type: pt,
                 color: c,
             });
-            let pp = match *pt {
+            let pp = match pt {
                 PieceType::Rook | PieceType::Bishop => 5,
                 _ => 1,
             };
 
-            point += num * pp;
-        }
+            acc + num * pp
+        });
 
         let lowerbound = match c {
             Color::Black => 28,
@@ -204,21 +198,22 @@ impl Position {
     }
 
     fn is_attacked_by(&self, sq: Square, c: Color) -> bool {
-        use super::PieceType::*;
+        PieceType::iter().any(|pt| !self.get_attackers_of_type(pt, sq, c).is_empty())
+    }
 
-        [Pawn, Lance, Knight, Silver, Gold, King, Rook, Bishop, ProPawn, ProLance, ProKnight,
-         ProSilver, ProRook, ProBishop]
+    fn get_attackers_of_type(&self, pt: PieceType, sq: Square, c: Color) -> Vec<Square> {
+        let attack_pc = Piece {
+            piece_type: pt,
+            color: c,
+        };
+
+        self.move_candidates(sq, &attack_pc.flip())
             .iter()
-            .any(|pt| {
-                let attack_pc = Piece {
-                    piece_type: *pt,
-                    color: c,
-                };
-
-                self.move_candidates(sq, &attack_pc.flip())
-                    .iter()
-                    .any(|&sq| *self.piece_at(sq) == Some(attack_pc))
+            .filter_map(|&sq| match self.piece_at(sq) {
+                &Some(pc) if pc == attack_pc => Some(sq),
+                _ => None,
             })
+            .collect()
     }
 
     fn find_king(&self, c: Color) -> Option<Square> {
@@ -377,19 +372,22 @@ impl Position {
 
             // Uchifuzume check.
             if let Some(king_sq) = to.shift(0, if stm == Color::Black { -1 } else { 1 }) {
+                // Is the dropped pawn attacking the opponent's king?
                 if let Some(pc @ Piece { piece_type: PieceType::King, .. }) =
                     *self.piece_at(king_sq) {
                     if pc.color == opponent {
-                        self.set_piece(king_sq, None);
+                        // can any opponent's piece attack the dropped pawn?
+                        let not_attacked = PieceType::iter()
+                            .flat_map(|pt| self.get_attackers_of_type(pt, to, opponent))
+                            .all(|sq| self.is_pinned(sq, opponent));
 
-                        // TODO check if the piece is pinned.
-                        if !self.is_attacked_by(to, opponent) {
+                        if not_attacked {
+                            self.set_piece(king_sq, None);
                             self.set_piece(to, Some(pc));
 
+                            // can the opponent's king evade?
                             if self.move_candidates(king_sq, &pc).iter().all(|sq| {
-                                let pc = self.piece_at(*sq);
-
-                                if let Some(pc) = *pc {
+                                if let Some(pc) = *self.piece_at(*sq) {
                                     if pc.color == opponent {
                                         return true;
                                     }
@@ -427,6 +425,71 @@ impl Position {
             to: to,
             piece: pc,
         })
+    }
+
+    fn is_pinned(&self, sq: Square, c: Color) -> bool {
+        let king_pos = self.find_king(c);
+        if king_pos.is_none() {
+            return false;
+        }
+
+        let king_pos = king_pos.unwrap();
+        if king_pos == sq {
+            return false;
+        }
+
+        let df = sq.file() as i8 - king_pos.file() as i8;
+        let dr = sq.rank() as i8 - king_pos.rank() as i8;
+
+        let find_dir = |uf, ur, pts: &[PieceType]| -> bool {
+            let mut ptr = sq;
+            while let Some(next) = ptr.shift(uf, ur) {
+                if let &Some(pc) = self.piece_at(next) {
+                    if pts.contains(&pc.piece_type) {
+                        return true;
+                    }
+
+                    break;
+                }
+
+                ptr = next;
+            }
+
+            false
+        };
+
+        if df == 0 {
+            let lance_dir = match c {
+                Color::Black => -1,
+                Color::White => 1,
+            };
+            if dr.signum() == lance_dir {
+                if find_dir(0,
+                            lance_dir,
+                            &[PieceType::Lance, PieceType::Rook, PieceType::ProRook]) {
+                    return true;
+                }
+            } else {
+                if find_dir(0, dr.signum(), &[PieceType::Rook, PieceType::ProRook]) {
+                    return true;
+                }
+            }
+        }
+
+        if dr == 0 {
+            if find_dir(df.signum(), 0, &[PieceType::Rook, PieceType::ProRook]) {
+                return true;
+            }
+        }
+
+        if df == dr {
+            let u = df.signum();
+            if find_dir(u, u, &[PieceType::Bishop, PieceType::ProBishop]) {
+                return true;
+            }
+        }
+
+        false
     }
 
     /// Undoes the last move.
@@ -891,10 +954,9 @@ impl fmt::Display for Position {
                       }));
 
         let fmt_hand = |color: Color, f: &mut fmt::Formatter| -> fmt::Result {
-            use super::PieceType::*;
-            for pt in [Rook, Bishop, Gold, Silver, Knight, Lance, Pawn].iter() {
+            for pt in PieceType::iter().filter(|pt| pt.is_hand_piece()) {
                 let pc = Piece {
-                    piece_type: *pt,
+                    piece_type: pt,
                     color: color,
                 };
                 let n = self.hand.get(&pc);
@@ -1056,7 +1118,9 @@ mod tests {
     #[test]
     fn uchifuzume() {
         let ng_cases = [("9/9/7sp/6ppk/9/7G1/9/9/9 b P 1", SQ_1E),
-                        ("7nk/9/7S1/6b2/9/9/9/9/9 b P 1", SQ_1B)];
+                        ("7nk/9/7S1/6b2/9/9/9/9/9 b P 1", SQ_1B),
+                        ("7nk/7g1/6BS1/9/9/9/9/9/9 b P 1", SQ_1B),
+                        ("R6gk/9/7S1/9/9/9/9/9/9 b P 1", SQ_1B)];
         let ok_cases = [("9/9/7pp/6psk/9/7G1/7N1/9/9 b P 1", SQ_1E),
                         ("7nk/9/7Sg/6b2/9/9/9/9/9 b P 1", SQ_1B),
                         ("9/8p/3pG1gp1/2p2kl1N/3P1p1s1/lPP6/2SGBP3/PK1S2+p2/LN7 w RSL3Prbg2n4p 1",
