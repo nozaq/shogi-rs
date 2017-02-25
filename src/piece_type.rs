@@ -1,25 +1,31 @@
 use std::fmt;
+use std::iter;
 
 /// Represents a kind of pieces.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceType {
-    Pawn,
-    Lance,
-    Knight,
-    Silver,
-    Gold,
+    King,
     Rook,
     Bishop,
-    King,
-    ProPawn,
-    ProLance,
-    ProKnight,
-    ProSilver,
+    Gold,
+    Silver,
+    Knight,
+    Lance,
+    Pawn,
     ProRook,
     ProBishop,
+    ProSilver,
+    ProKnight,
+    ProLance,
+    ProPawn,
 }
 
 impl PieceType {
+    /// Returns an iterator over valid PieceType values.
+    pub fn iter() -> PieceTypeIter {
+        PieceTypeIter::new()
+    }
+
     /// Creates a new instance of `PieceType` from SFEN formatted string.
     pub fn from_sfen(c: char) -> Option<PieceType> {
         Some(match c {
@@ -82,6 +88,15 @@ impl PieceType {
             _ => return None,
         })
     }
+
+    /// Checks if this piece type can be a part of hand pieces.
+    pub fn is_hand_piece(&self) -> bool {
+        match *self {
+            PieceType::Rook | PieceType::Bishop | PieceType::Gold | PieceType::Silver |
+            PieceType::Knight | PieceType::Lance | PieceType::Pawn => true,
+            _ => false,
+        }
+    }
 }
 
 impl fmt::Display for PieceType {
@@ -104,6 +119,46 @@ impl fmt::Display for PieceType {
                    PieceType::ProRook => "+r",
                    PieceType::ProSilver => "+s",
                })
+    }
+}
+
+/// An iterator over all `PieceType` values.
+pub struct PieceTypeIter {
+    current: PieceType,
+}
+
+impl PieceTypeIter {
+    fn new() -> PieceTypeIter {
+        PieceTypeIter { current: PieceType::King }
+    }
+}
+
+impl iter::Iterator for PieceTypeIter {
+    type Item = PieceType;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = match self.current {
+            PieceType::King => Some(PieceType::Rook),
+            PieceType::Rook => Some(PieceType::Bishop),
+            PieceType::Bishop => Some(PieceType::Gold),
+            PieceType::Gold => Some(PieceType::Silver),
+            PieceType::Silver => Some(PieceType::Knight),
+            PieceType::Knight => Some(PieceType::Lance),
+            PieceType::Lance => Some(PieceType::Pawn),
+            PieceType::Pawn => Some(PieceType::ProRook),
+            PieceType::ProRook => Some(PieceType::ProBishop),
+            PieceType::ProBishop => Some(PieceType::ProSilver),
+            PieceType::ProSilver => Some(PieceType::ProKnight),
+            PieceType::ProKnight => Some(PieceType::ProLance),
+            PieceType::ProLance => Some(PieceType::ProPawn),
+            PieceType::ProPawn => None,
+        };
+
+        if let Some(pt) = next {
+            self.current = pt;
+        }
+
+        next
     }
 }
 
