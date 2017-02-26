@@ -65,6 +65,16 @@ impl Square {
         Some(Square { inner: file * 9 + rank })
     }
 
+    /// Creates a new instance of `Square` with the given index value.
+    pub fn from_index(index: u8) -> Option<Square> {
+        if index >= 81 {
+            return None;
+        }
+
+        Some(Square { inner: index })
+    }
+
+    /// Returns an iterator of all variants.
     pub fn iter() -> SquareIter {
         SquareIter { current: 0 }
     }
@@ -129,6 +139,8 @@ impl Square {
         self.relative_rank(c) < 3
     }
 
+    /// Converts the instance into the unique number for array indexing purpose.
+    #[inline(always)]
     pub fn index(&self) -> usize {
         self.inner as usize
     }
@@ -174,6 +186,10 @@ pub mod consts {
                     SQ_9A SQ_9B SQ_9C SQ_9D SQ_9E SQ_9F SQ_9G SQ_9H SQ_9I}
 }
 
+/// This struct is created by the [`iter`] method on [`Square`].
+///
+/// [`iter`]: ./struct.Square.html#method.iter
+/// [`Square`]: struct.Square.html
 pub struct SquareIter {
     current: u8,
 }
@@ -207,6 +223,10 @@ mod tests {
                 assert_eq!(rank, sq.rank());
             }
         }
+
+        assert_eq!(None, Square::new(10, 0));
+        assert_eq!(None, Square::new(0, 10));
+        assert_eq!(None, Square::new(10, 10));
     }
 
     #[test]
@@ -226,6 +246,15 @@ mod tests {
                     "{} should cause an error",
                     case);
         }
+    }
+
+    #[test]
+    fn from_index() {
+        for i in 0..81 {
+            assert!(Square::from_index(i).is_some());
+        }
+
+        assert!(Square::from_index(82).is_none());
     }
 
     #[test]
