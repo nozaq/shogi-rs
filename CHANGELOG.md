@@ -1,3 +1,14 @@
+<a name="0.6.0"></a>
+## 0.6.0 (2017-03-05)
+
+
+#### Features
+
+*  Bitboard-based move generation (#9) ([0a5a36d3](0a5a36d3))
+
+
+
+
 <a name="0.5.0"></a>
 ## 0.5.0 (2017-02-25)
 
