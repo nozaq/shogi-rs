@@ -2,7 +2,7 @@
 name = "shogi"
 version = "0.5.0"
 authors = ["Takashi Nozawa <nozazon@gmail.com>"]
-description = "A library providing various types and implementations for representing concepts and rules in Shogi."
+description = "Bitboard based Shogi library. Move handling, USI(Universal Shogi Interface) protocol support and various time control."
 keywords = ["shogi", "move", "usi", "sfen"]
 categories = ["game-engines"]
 repository = "https://github.com/nozaq/shogi-rs"
@@ -11,7 +11,25 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+bitintr = "0.1.17"
 itertools = "0.5.9"
 
 [badges]
 travis-ci = { repository = "nozaq/shogi-rs" }
+
+[profile.test]
+opt-level = 0
+debug = true
+lto = false
+debug-assertions = true
+codegen-units = 1
+panic = 'unwind'
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'

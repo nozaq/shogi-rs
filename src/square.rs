@@ -1,4 +1,5 @@
 use std::fmt;
+use std::iter;
 use Color;
 
 const ASCII_1: u8 = '1' as u8;
@@ -64,6 +65,20 @@ impl Square {
         Some(Square { inner: file * 9 + rank })
     }
 
+    /// Creates a new instance of `Square` with the given index value.
+    pub fn from_index(index: u8) -> Option<Square> {
+        if index >= 81 {
+            return None;
+        }
+
+        Some(Square { inner: index })
+    }
+
+    /// Returns an iterator of all variants.
+    pub fn iter() -> SquareIter {
+        SquareIter { current: 0 }
+    }
+
     /// Returns a file of the square.
     pub fn file(&self) -> u8 {
         self.inner / 9
@@ -123,6 +138,12 @@ impl Square {
     pub fn in_promotion_zone(&self, c: Color) -> bool {
         self.relative_rank(c) < 3
     }
+
+    /// Converts the instance into the unique number for array indexing purpose.
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        self.inner as usize
+    }
 }
 
 impl fmt::Display for Square {
@@ -144,7 +165,6 @@ pub mod consts {
         {0, $t:ident $($ts:ident)+} => {
             pub const $t: Square = Square { inner: 0 };
             make_square!{1, $($ts)*}
-            pub const ALL_SQUARES: [Square; 81] = [$t, $($ts),*];
         };
         {$n:expr, $t:ident $($ts:ident)+} => {
             pub const $t: Square = Square { inner: $n };
@@ -166,10 +186,33 @@ pub mod consts {
                     SQ_9A SQ_9B SQ_9C SQ_9D SQ_9E SQ_9F SQ_9G SQ_9H SQ_9I}
 }
 
+/// This struct is created by the [`iter`] method on [`Square`].
+///
+/// [`iter`]: ./struct.Square.html#method.iter
+/// [`Square`]: struct.Square.html
+pub struct SquareIter {
+    current: u8,
+}
+
+impl iter::Iterator for SquareIter {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let cur = self.current;
+
+        if cur >= 81 {
+            return None;
+        }
+
+        self.current += 1;
+
+        Some(Square { inner: cur })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::consts::*;
 
     #[test]
     fn new() {
@@ -180,6 +223,10 @@ mod tests {
                 assert_eq!(rank, sq.rank());
             }
         }
+
+        assert_eq!(None, Square::new(10, 0));
+        assert_eq!(None, Square::new(0, 10));
+        assert_eq!(None, Square::new(10, 10));
     }
 
     #[test]
@@ -199,6 +246,15 @@ mod tests {
                     "{} should cause an error",
                     case);
         }
+    }
+
+    #[test]
+    fn from_index() {
+        for i in 0..81 {
+            assert!(Square::from_index(i).is_some());
+        }
+
+        assert!(Square::from_index(82).is_none());
     }
 
     #[test]
@@ -276,7 +332,7 @@ mod tests {
 
     #[test]
     fn consts() {
-        for (i, sq) in ALL_SQUARES.iter().enumerate() {
+        for (i, sq) in Square::iter().enumerate() {
             assert_eq!((i / 9) as u8, sq.file());
             assert_eq!((i % 9) as u8, sq.rank());
         }
