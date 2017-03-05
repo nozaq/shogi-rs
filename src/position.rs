@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 use std::fmt;
 use itertools::Itertools;
 
-use {Color, Hand, Move, Piece, PieceType, Square, MoveError, SfenError};
-use square::consts::*;
+use {Bitboard, Color, Hand, Move, Piece, PieceType, Square, MoveError, SfenError};
+use bitboard::Factory as BBFactory;
 
 /// MoveRecord stores information necessary to undo the move.
 #[derive(Debug)]
@@ -47,14 +46,39 @@ impl PartialEq<Move> for MoveRecord {
     }
 }
 
+struct PieceGrid([Option<Piece>; 81]);
+
+impl PieceGrid {
+    pub fn get(&self, sq: Square) -> &Option<Piece> {
+        &self.0[sq.index()]
+    }
+
+    pub fn set(&mut self, sq: Square, pc: &Option<Piece>) {
+        self.0[sq.index()] = *pc;
+    }
+}
+
+impl fmt::Debug for PieceGrid {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(write!(fmt, "PieceGrid {{ "));
+
+        for pc in self.0.iter() {
+            try!(write!(fmt, "{:?} ", pc));
+        }
+        write!(fmt, "}}")
+    }
+}
+
 /// Represents a state of the game.
 ///
 /// # Examples
 ///
 /// ```
 /// use shogi::{Move, Position};
+/// use shogi::bitboard::Factory as BBFactory;
 /// use shogi::square::consts::*;
 ///
+/// BBFactory::init();
 /// let mut pos = Position::new();
 /// pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").unwrap();
 ///
@@ -65,12 +89,15 @@ impl PartialEq<Move> for MoveRecord {
 /// ```
 #[derive(Debug)]
 pub struct Position {
-    board: [[Option<Piece>; 9]; 9],
+    board: PieceGrid,
     hand: Hand,
     ply: u16,
     side_to_move: Color,
     move_history: Vec<MoveRecord>,
     sfen_history: Vec<(String, u16)>,
+    occupied_bb: Bitboard,
+    color_bb: [Bitboard; 2],
+    type_bb: [Bitboard; 14],
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -89,12 +116,7 @@ impl Position {
 
     /// Returns a piece at the given square.
     pub fn piece_at(&self, sq: Square) -> &Option<Piece> {
-        &self.board[sq.rank() as usize][sq.file() as usize]
-    }
-
-    /// Sets a piece at the given square.
-    pub fn set_piece(&mut self, sq: Square, p: Option<Piece>) {
-        self.board[sq.rank() as usize][sq.file() as usize] = p;
+        self.board.get(sq)
     }
 
     /// Returns the number of the given piece in hand.
@@ -135,24 +157,24 @@ impl Position {
             return false;
         }
 
-        let mut point = 0;
-        let mut count = 0;
-        for file in 0..9 {
-            let range = if c == Color::Black { 0..3 } else { 6..9 };
+        let (mut point, count) =
+            PieceType::iter().filter(|&pt| pt != PieceType::King).fold((0, 0), |accum, pt| {
+                let unit = match pt {
+                    PieceType::Rook | PieceType::Bishop | PieceType::ProRook |
+                    PieceType::ProBishop => 5,
+                    _ => 1,
+                };
 
-            for rank in range {
-                let sq = Square::new(file, rank).unwrap();
-                if let &Some(pc) = self.piece_at(sq) {
-                    if pc.color == c && pc.piece_type != PieceType::King {
-                        point += match pc.piece_type {
-                            PieceType::Rook | PieceType::Bishop | PieceType::ProRook |
-                            PieceType::ProBishop => 5,
-                            _ => 1,
-                        };
-                        count += 1;
-                    }
-                }
-            }
+                let bb = &(&self.type_bb[pt.index()] & &self.color_bb[c.index()]) &
+                         &BBFactory::promote_zone(c);
+                let count = bb.count() as u8;
+                let point = count * unit;
+
+                (accum.0 + point, accum.1 + count)
+            });
+
+        if count < 10 {
+            return false;
         }
 
         point += PieceType::iter().filter(|pt| pt.is_hand_piece()).fold(0, |acc, pt| {
@@ -176,10 +198,6 @@ impl Position {
             return false;
         }
 
-        if count < 10 {
-            return false;
-        }
-
         if self.in_check(c) {
             return false;
         }
@@ -189,46 +207,40 @@ impl Position {
 
     /// Checks if the king with the given color is in check.
     pub fn in_check(&self, c: Color) -> bool {
-        let king_sq = self.find_king(c);
-        if king_sq.is_none() {
-            return false;
+        if let Some(king_sq) = self.find_king(c) {
+            self.is_attacked_by(king_sq, c.flip())
+        } else {
+            false
         }
+    }
 
-        self.is_attacked_by(king_sq.unwrap(), c.flip())
+    /// Sets a piece at the given square.
+    fn set_piece(&mut self, sq: Square, p: Option<Piece>) {
+        self.board.set(sq, &p);
     }
 
     fn is_attacked_by(&self, sq: Square, c: Color) -> bool {
-        PieceType::iter().any(|pt| !self.get_attackers_of_type(pt, sq, c).is_empty())
+        PieceType::iter().any(|pt| self.get_attackers_of_type(pt, sq, c).is_any())
     }
 
-    fn get_attackers_of_type(&self, pt: PieceType, sq: Square, c: Color) -> Vec<Square> {
+    fn get_attackers_of_type(&self, pt: PieceType, sq: Square, c: Color) -> Bitboard {
+        let bb = &self.type_bb[pt.index()] & &self.color_bb[c.index()];
+
+        if bb.is_empty() {
+            return bb;
+        }
+
         let attack_pc = Piece {
             piece_type: pt,
             color: c,
         };
 
-        self.move_candidates(sq, &attack_pc.flip())
-            .iter()
-            .filter_map(|&sq| match self.piece_at(sq) {
-                &Some(pc) if pc == attack_pc => Some(sq),
-                _ => None,
-            })
-            .collect()
+        &bb & &self.move_candidates(sq, &attack_pc.flip())
     }
 
     fn find_king(&self, c: Color) -> Option<Square> {
-        let pc = Piece {
-            piece_type: PieceType::King,
-            color: c,
-        };
-
-        for sq in ALL_SQUARES.iter() {
-            if *self.piece_at(*sq) == Some(pc) {
-                return Some(*sq);
-            }
-        }
-
-        None
+        let mut bb = &self.type_bb[PieceType::King.index()] & &self.color_bb[c.index()];
+        if bb.is_any() { Some(bb.pop()) } else { None }
     }
 
     fn log_position(&mut self) {
@@ -288,7 +300,7 @@ impl Position {
             return Err(MoveError::Inconsistent);
         }
 
-        if !self.move_candidates(from, &moved).contains(&to) {
+        if !self.move_candidates(from, &moved).any(|sq| sq == to) {
             return Err(MoveError::Inconsistent);
         }
 
@@ -307,16 +319,17 @@ impl Position {
 
         self.set_piece(from, None);
         self.set_piece(to, Some(placed));
-
-        if self.in_check(stm) {
-            // Undo-ing the move.
-            self.set_piece(from, Some(moved));
-            self.set_piece(to, captured);
-
-            return Err(MoveError::InCheck);
-        }
+        self.occupied_bb ^= from;
+        self.occupied_bb ^= to;
+        self.type_bb[moved.piece_type.index()] ^= from;
+        self.type_bb[placed.piece_type.index()] ^= to;
+        self.color_bb[moved.color.index()] ^= from;
+        self.color_bb[placed.color.index()] ^= to;
 
         if let Some(ref cap) = captured {
+            self.occupied_bb ^= to;
+            self.type_bb[cap.piece_type.index()] ^= to;
+            self.color_bb[cap.color.index()] ^= to;
             let pc = cap.flip();
             let pc = match pc.unpromote() {
                 Some(unpromoted) => unpromoted,
@@ -324,6 +337,34 @@ impl Position {
             };
             self.hand.increment(&pc);
         }
+
+        if self.in_check(stm) {
+            // Undo-ing the move.
+            self.set_piece(from, Some(moved));
+            self.set_piece(to, captured);
+            self.occupied_bb ^= from;
+            self.occupied_bb ^= to;
+            self.type_bb[moved.piece_type.index()] ^= from;
+            self.type_bb[placed.piece_type.index()] ^= to;
+            self.color_bb[moved.color.index()] ^= from;
+            self.color_bb[placed.color.index()] ^= to;
+
+            if let Some(ref cap) = captured {
+                self.occupied_bb ^= to;
+                self.type_bb[cap.piece_type.index()] ^= to;
+                self.color_bb[cap.color.index()] ^= to;
+                let pc = cap.flip();
+                let pc = match pc.unpromote() {
+                    Some(unpromoted) => unpromoted,
+                    None => pc,
+                };
+                self.hand.decrement(&pc);
+
+            }
+
+            return Err(MoveError::InCheck);
+        }
+
         self.side_to_move = opponent;
         self.ply += 1;
 
@@ -377,40 +418,43 @@ impl Position {
                     *self.piece_at(king_sq) {
                     if pc.color == opponent {
                         // can any opponent's piece attack the dropped pawn?
+                        let pinned = self.pinned_bb(opponent);
+
                         let not_attacked = PieceType::iter()
+                            .filter(|&pt| pt != PieceType::King)
                             .flat_map(|pt| self.get_attackers_of_type(pt, to, opponent))
-                            .all(|sq| self.is_pinned(sq, opponent));
+                            .all(|sq| (&pinned & sq).is_any());
 
                         if not_attacked {
-                            self.set_piece(king_sq, None);
-                            self.set_piece(to, Some(pc));
-
                             // can the opponent's king evade?
-                            if self.move_candidates(king_sq, &pc).iter().all(|sq| {
-                                if let Some(pc) = *self.piece_at(*sq) {
+                            if self.move_candidates(king_sq, &pc).all(|sq| {
+                                if let Some(pc) = *self.piece_at(sq) {
                                     if pc.color == opponent {
                                         return true;
                                     }
                                 }
 
-                                self.is_attacked_by(*sq, stm)
+                                self.is_attacked_by(sq, stm)
                             }) {
                                 return Err(MoveError::Uchifuzume);
                             }
-
-                            self.set_piece(to, None);
                         }
-                        self.set_piece(king_sq, Some(pc));
                     }
                 }
             }
         }
 
         self.set_piece(to, Some(pc));
+        self.occupied_bb ^= to;
+        self.type_bb[pc.piece_type.index()] ^= to;
+        self.color_bb[pc.color.index()] ^= to;
 
         if self.in_check(stm) {
             // Undo-ing the move.
             self.set_piece(to, None);
+            self.occupied_bb ^= to;
+            self.type_bb[pc.piece_type.index()] ^= to;
+            self.color_bb[pc.color.index()] ^= to;
             return Err(MoveError::InCheck);
         }
 
@@ -427,69 +471,31 @@ impl Position {
         })
     }
 
-    fn is_pinned(&self, sq: Square, c: Color) -> bool {
-        let king_pos = self.find_king(c);
-        if king_pos.is_none() {
-            return false;
+    fn pinned_bb(&self, c: Color) -> Bitboard {
+        let ksq = self.find_king(c);
+        if ksq.is_none() {
+            return Bitboard::empty();
         }
+        let ksq = ksq.unwrap();
 
-        let king_pos = king_pos.unwrap();
-        if king_pos == sq {
-            return false;
-        }
+        [(PieceType::Rook, BBFactory::rook_attack(ksq, &Bitboard::empty())),
+         (PieceType::ProRook, BBFactory::rook_attack(ksq, &Bitboard::empty())),
+         (PieceType::Bishop, BBFactory::bishop_attack(ksq, &Bitboard::empty())),
+         (PieceType::ProBishop, BBFactory::bishop_attack(ksq, &Bitboard::empty())),
+         (PieceType::Lance, BBFactory::lance_attack(c, ksq, &Bitboard::empty()))]
+            .iter()
+            .fold(Bitboard::empty(), |mut accum, &(pt, ref mask)| {
+                let bb = &(&self.type_bb[pt.index()] & &self.color_bb[c.flip().index()]) & mask;
 
-        let df = sq.file() as i8 - king_pos.file() as i8;
-        let dr = sq.rank() as i8 - king_pos.rank() as i8;
-
-        let find_dir = |uf, ur, pts: &[PieceType]| -> bool {
-            let mut ptr = sq;
-            while let Some(next) = ptr.shift(uf, ur) {
-                if let &Some(pc) = self.piece_at(next) {
-                    if pts.contains(&pc.piece_type) {
-                        return true;
+                for psq in bb {
+                    let between = &BBFactory::between(ksq, psq) & &self.occupied_bb;
+                    if between.count() == 1 && (&between & &self.color_bb[c.index()]).is_any() {
+                        accum |= &between;
                     }
-
-                    break;
                 }
 
-                ptr = next;
-            }
-
-            false
-        };
-
-        if df == 0 {
-            let lance_dir = match c {
-                Color::Black => -1,
-                Color::White => 1,
-            };
-            if dr.signum() == lance_dir {
-                if find_dir(0,
-                            lance_dir,
-                            &[PieceType::Lance, PieceType::Rook, PieceType::ProRook]) {
-                    return true;
-                }
-            } else {
-                if find_dir(0, dr.signum(), &[PieceType::Rook, PieceType::ProRook]) {
-                    return true;
-                }
-            }
-        }
-
-        if dr == 0 {
-            if find_dir(df.signum(), 0, &[PieceType::Rook, PieceType::ProRook]) {
-                return true;
-            }
-        }
-
-        if df == dr {
-            let u = df.signum();
-            if find_dir(u, u, &[PieceType::Bishop, PieceType::ProBishop]) {
-                return true;
-            }
-        }
-
-        false
+                accum
+            })
     }
 
     /// Undoes the last move.
@@ -520,7 +526,17 @@ impl Position {
 
                 self.set_piece(from, Some(*moved));
                 self.set_piece(to, *captured);
+                self.occupied_bb ^= from;
+                self.occupied_bb ^= to;
+                self.type_bb[moved.piece_type.index()] ^= from;
+                self.type_bb[moved.piece_type.index()] ^= to;
+                self.color_bb[moved.color.index()] ^= from;
+                self.color_bb[moved.color.index()] ^= to;
+
                 if let Some(ref cap) = *captured {
+                    self.occupied_bb ^= to;
+                    self.type_bb[cap.piece_type.index()] ^= to;
+                    self.color_bb[cap.color.index()] ^= to;
                     self.hand.decrement(&cap.flip());
                 }
             }
@@ -530,6 +546,9 @@ impl Position {
                 }
 
                 self.set_piece(to, None);
+                self.occupied_bb ^= to;
+                self.type_bb[piece.piece_type.index()] ^= to;
+                self.color_bb[piece.color.index()] ^= to;
                 self.hand.increment(piece);
             }
         };
@@ -542,118 +561,25 @@ impl Position {
     }
 
     /// Returns a list of squares to where the given pieve at the given square can move.
-    pub fn move_candidates(&self, sq: Square, p: &Piece) -> Vec<Square> {
-        use super::PieceType::*;
-
-        let mut candidates = HashSet::new();
-
-        let shift = |df: i8, mut dr: i8, candidates: &mut HashSet<Square>| {
-            if p.color == Color::White {
-                dr *= -1;
+    pub fn move_candidates(&self, sq: Square, p: &Piece) -> Bitboard {
+        let bb = match p.piece_type {
+            PieceType::Rook => BBFactory::rook_attack(sq, &self.occupied_bb),
+            PieceType::Bishop => BBFactory::bishop_attack(sq, &self.occupied_bb),
+            PieceType::Lance => BBFactory::lance_attack(p.color, sq, &self.occupied_bb),
+            PieceType::ProRook => {
+                &BBFactory::rook_attack(sq, &self.occupied_bb) |
+                &BBFactory::attacks_from(PieceType::King, p.color, sq)
             }
-
-            if let Some(sq) = sq.shift(df, dr) {
-                candidates.insert(sq);
+            PieceType::ProBishop => {
+                &BBFactory::bishop_attack(sq, &self.occupied_bb) |
+                &BBFactory::attacks_from(PieceType::King, p.color, sq)
             }
+            PieceType::ProSilver | PieceType::ProKnight | PieceType::ProLance |
+            PieceType::ProPawn => BBFactory::attacks_from(PieceType::Gold, p.color, sq),
+            pt => BBFactory::attacks_from(pt, p.color, sq),
         };
 
-        let ray = |df: i8, mut dr: i8, candidates: &mut HashSet<Square>| {
-            if p.color == Color::White {
-                dr *= -1;
-            }
-
-            let mut ptr = sq;
-            while let Some(next) = ptr.shift(df, dr) {
-                candidates.insert(next);
-
-                if let Some(_) = *self.piece_at(next) {
-                    break;
-                }
-
-                ptr = next;
-            }
-        };
-
-        match p.piece_type {
-            Pawn => shift(0, -1, &mut candidates),
-            Lance => ray(0, -1, &mut candidates),
-            Knight => {
-                shift(-1, -2, &mut candidates);
-                shift(1, -2, &mut candidates);
-            }
-            Silver => {
-                shift(-1, -1, &mut candidates);
-                shift(0, -1, &mut candidates);
-                shift(1, -1, &mut candidates);
-                shift(-1, 1, &mut candidates);
-                shift(1, 1, &mut candidates);
-            }
-            Rook => {
-                ray(0, -1, &mut candidates);
-                ray(0, 1, &mut candidates);
-                ray(1, 0, &mut candidates);
-                ray(-1, 0, &mut candidates);
-            }
-            Bishop => {
-                ray(-1, -1, &mut candidates);
-                ray(-1, 1, &mut candidates);
-                ray(1, -1, &mut candidates);
-                ray(1, 1, &mut candidates);
-            }
-            King => {
-                shift(-1, -1, &mut candidates);
-                shift(0, -1, &mut candidates);
-                shift(1, -1, &mut candidates);
-                shift(-1, 0, &mut candidates);
-                shift(1, 0, &mut candidates);
-                shift(-1, 1, &mut candidates);
-                shift(0, 1, &mut candidates);
-                shift(1, 1, &mut candidates);
-            }
-            ProRook => {
-                ray(0, -1, &mut candidates);
-                ray(0, 1, &mut candidates);
-                ray(1, 0, &mut candidates);
-                ray(-1, 0, &mut candidates);
-                shift(-1, -1, &mut candidates);
-                shift(0, -1, &mut candidates);
-                shift(1, -1, &mut candidates);
-                shift(-1, 0, &mut candidates);
-                shift(1, 0, &mut candidates);
-                shift(-1, 1, &mut candidates);
-                shift(0, 1, &mut candidates);
-                shift(1, 1, &mut candidates);
-            }
-            ProBishop => {
-                ray(-1, -1, &mut candidates);
-                ray(-1, 1, &mut candidates);
-                ray(1, -1, &mut candidates);
-                ray(1, 1, &mut candidates);
-                shift(-1, -1, &mut candidates);
-                shift(0, -1, &mut candidates);
-                shift(1, -1, &mut candidates);
-                shift(-1, 0, &mut candidates);
-                shift(1, 0, &mut candidates);
-                shift(-1, 1, &mut candidates);
-                shift(0, 1, &mut candidates);
-                shift(1, 1, &mut candidates);
-            }
-            _ => {
-                shift(-1, -1, &mut candidates);
-                shift(0, -1, &mut candidates);
-                shift(1, -1, &mut candidates);
-                shift(-1, 0, &mut candidates);
-                shift(1, 0, &mut candidates);
-                shift(0, 1, &mut candidates);
-            }
-        };
-
-        candidates.into_iter()
-            .filter(|&sq| match *self.piece_at(sq) {
-                Some(p2) => p2.color == p.color.flip(),
-                None => true,
-            })
-            .collect::<Vec<_>>()
+        &bb & &!&self.color_bb[p.color.index()]
     }
 
     fn detect_repetition(&self) -> Result<(), MoveError> {
@@ -747,6 +673,10 @@ impl Position {
     fn parse_sfen_board(&mut self, s: &str) -> Result<(), SfenError> {
         let rows = s.split('/');
 
+        self.occupied_bb = Bitboard::empty();
+        self.color_bb = Default::default();
+        self.type_bb = Default::default();
+
         for (i, row) in rows.enumerate() {
             if i >= 9 {
                 return Err(SfenError {});
@@ -767,7 +697,8 @@ impl Position {
                                     return Err(SfenError {});
                                 }
 
-                                self.board[i][8 - j] = None;
+                                let sq = Square::new(8 - j, i as u8).unwrap();
+                                self.set_piece(sq, None);
 
                                 j += 1;
                             }
@@ -788,7 +719,11 @@ impl Position {
                                     }
                                 }
 
-                                self.board[i][8 - j] = Some(piece);
+                                let sq = Square::new(8 - j, i as u8).unwrap();
+                                self.set_piece(sq, Some(piece));
+                                self.occupied_bb |= sq;
+                                self.color_bb[piece.color.index()] |= sq;
+                                self.type_bb[piece.piece_type.index()] |= sq;
                                 j += 1;
 
                                 is_promoted = false;
@@ -845,15 +780,12 @@ impl Position {
     }
 
     fn generate_sfen(&self) -> String {
-        use super::PieceType::*;
-
-        let board = self.board
-            .iter()
+        let board = (0..9)
             .map(|row| {
                 let mut s = String::new();
                 let mut num_spaces = 0;
-                for board_item in row.iter().rev() {
-                    match *board_item {
+                for file in (0..9).rev() {
+                    match *self.piece_at(Square::new(file, row).unwrap()) {
                         Some(pc) => {
                             if num_spaces > 0 {
                                 s.push_str(&num_spaces.to_string());
@@ -865,6 +797,7 @@ impl Position {
                         None => num_spaces += 1,
                     }
                 }
+
                 if num_spaces > 0 {
                     s.push_str(&num_spaces.to_string());
                 }
@@ -882,11 +815,11 @@ impl Position {
         let mut hand = [Color::Black, Color::White]
             .iter()
             .map(|c| {
-                [Rook, Bishop, Gold, Silver, Knight, Lance, Pawn]
-                    .iter()
+                PieceType::iter()
+                    .filter(|pt| pt.is_hand_piece())
                     .map(|pt| {
                         let pc = Piece {
-                            piece_type: *pt,
+                            piece_type: pt,
                             color: *c,
                         };
                         let n = self.hand.get(&pc);
@@ -919,11 +852,14 @@ impl Default for Position {
     fn default() -> Position {
         Position {
             side_to_move: Color::Black,
-            board: Default::default(),
+            board: PieceGrid([None; 81]),
             hand: Default::default(),
             ply: 1,
             move_history: Default::default(),
             sfen_history: Default::default(),
+            occupied_bb: Default::default(),
+            color_bb: Default::default(),
+            type_bb: Default::default(),
         }
     }
 }
@@ -932,16 +868,18 @@ impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
         try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
-        for (i, row) in self.board.iter().enumerate() {
+
+        for row in 0..9 {
             try!(write!(f, "|"));
-            for piece in row.iter().rev() {
-                if let Some(ref piece) = *piece {
+            for file in (0..9).rev() {
+                if let Some(ref piece) = *self.piece_at(Square::new(file, row).unwrap()) {
                     try!(write!(f, "{:>3}|", piece.to_string()));
                 } else {
                     try!(write!(f, "   |"));
                 }
             }
-            try!(writeln!(f, " {}", (('a' as usize + i) as u8) as char));
+
+            try!(writeln!(f, " {}", (('a' as usize + row as usize) as u8) as char));
             try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
         }
 
@@ -984,9 +922,16 @@ impl fmt::Display for Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use square::consts::*;
+
+    fn setup() {
+        BBFactory::init();
+    }
 
     #[test]
     fn new() {
+        setup();
+
         let pos = Position::new();
 
         for i in 0..9 {
@@ -999,12 +944,15 @@ mod tests {
 
     #[test]
     fn in_check() {
+        setup();
+
         let test_cases =
             [("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1", false, false),
              ("9/3r5/9/9/6B2/9/9/9/3K5 b P 1", true, false),
              ("ln2r1knl/2gb1+Rg2/4Pp1p1/p1pp1sp1p/1N2pN1P1/2P2PP2/PP1G1S2R/1SG6/LK6L w 2PSp 1",
               false,
-              true)];
+              true),
+             ("lnsg1gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSG1GSNL b - 1", false, false)];
 
         let mut pos = Position::new();
         for case in test_cases.iter() {
@@ -1015,18 +963,45 @@ mod tests {
     }
 
     #[test]
+    fn pinned_bb() {
+        setup();
+
+        let cases: &[(&str, &[Square], &[Square])] =
+            &[("R6gk/9/8p/9/4p4/9/9/8L/B8 b - 1", &[], &[SQ_2A, SQ_1C, SQ_5E])];
+
+        let mut pos = Position::new();
+        for case in cases {
+            pos.set_sfen(case.0).expect("faled to parse SFEN string");
+            let black = pos.pinned_bb(Color::Black);
+            let white = pos.pinned_bb(Color::White);
+
+            assert_eq!(case.1.len(), black.count());
+            for sq in case.1 {
+                assert!((&black & *sq).is_any());
+            }
+
+            assert_eq!(case.2.len(), white.count());
+            for sq in case.2 {
+                assert!((&white & *sq).is_any());
+            }
+        }
+    }
+
+    #[test]
     fn move_candidates() {
+        setup();
+
         let mut pos = Position::new();
         pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
             .expect("failed to parse SFEN string");
 
         let mut sum = 0;
-        for sq in ALL_SQUARES.iter() {
-            let pc = pos.piece_at(*sq);
+        for sq in Square::iter() {
+            let pc = pos.piece_at(sq);
 
             if let Some(pc) = *pc {
                 if pc.color == pos.side_to_move() {
-                    sum += pos.move_candidates(*sq, &pc).len();
+                    sum += pos.move_candidates(sq, &pc).count();
                 }
             }
         }
@@ -1036,6 +1011,8 @@ mod tests {
 
     #[test]
     fn make_normal_move() {
+        setup();
+
         let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
         let test_cases = [(SQ_2B, SQ_2C, false, true),
                           (SQ_7C, SQ_6E, false, true),
@@ -1056,11 +1033,14 @@ mod tests {
         // Leaving the checked king is illegal.
         pos.set_sfen("9/3r5/9/9/6B2/9/9/9/3K5 b P 1").expect("failed to parse SFEN string");
         assert!(pos.make_normal_move(SQ_6I, SQ_6H, false).is_err());
+        pos.set_sfen("9/3r5/9/9/6B2/9/9/9/3K5 b P 1").expect("failed to parse SFEN string");
         assert!(pos.make_normal_move(SQ_6I, SQ_7I, false).is_ok());
     }
 
     #[test]
     fn make_drop_move() {
+        setup();
+
         let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
         let test_cases = [(SQ_5E, PieceType::Pawn, true),
                           (SQ_5E, PieceType::Rook, false),
@@ -1083,6 +1063,8 @@ mod tests {
 
     #[test]
     fn nifu() {
+        setup();
+
         let ng_cases = [("ln1g5/1ks1g3l/1p2p1n2/p1pGs2rp/1P1N1ppp1/P1SB1P2P/1S1p1bPP1/LKG6/4R2NL \
                           w 2Pp 91",
                          SQ_6C)];
@@ -1117,6 +1099,8 @@ mod tests {
 
     #[test]
     fn uchifuzume() {
+        setup();
+
         let ng_cases = [("9/9/7sp/6ppk/9/7G1/9/9/9 b P 1", SQ_1E),
                         ("7nk/9/7S1/6b2/9/9/9/9/9 b P 1", SQ_1B),
                         ("7nk/7g1/6BS1/9/9/9/9/9/9 b P 1", SQ_1B),
@@ -1153,6 +1137,8 @@ mod tests {
 
     #[test]
     fn repetition() {
+        setup();
+
         let mut pos = Position::new();
         pos.set_sfen("ln7/ks+R6/pp7/9/9/9/9/9/9 b Ss 1")
             .expect("failed to parse SFEN string");
@@ -1177,6 +1163,8 @@ mod tests {
 
     #[test]
     fn percetual_check() {
+        setup();
+
         // Case 1. Starting from a check move.
         let mut pos = Position::new();
         pos.set_sfen("8l/6+P2/6+Rpk/8p/9/7S1/9/9/9 b - 1")
@@ -1229,6 +1217,8 @@ mod tests {
 
     #[test]
     fn unmake_move() {
+        setup();
+
         let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RG5gsnp 1";
         let test_cases = [Move::Drop {
                               to: SQ_5E,
@@ -1246,6 +1236,8 @@ mod tests {
 
     #[test]
     fn try_declare_winning() {
+        setup();
+
         let mut pos = Position::new();
 
         pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
@@ -1296,6 +1288,8 @@ mod tests {
 
     #[test]
     fn set_sfen_normal() {
+        setup();
+
         let mut pos = Position::new();
 
         pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
@@ -1389,6 +1383,8 @@ mod tests {
 
     #[test]
     fn to_sfen() {
+        setup();
+
         let test_cases = ["lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
                           "lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p \
                            1024"];
@@ -1403,6 +1399,8 @@ mod tests {
 
     #[test]
     fn set_sfen_custom() {
+        setup();
+
         let mut pos = Position::new();
         pos.set_sfen("lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p 1024")
             .expect("failed to parse SFEN string");

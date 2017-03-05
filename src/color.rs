@@ -1,4 +1,5 @@
 use std::fmt;
+use std::iter;
 
 ///  Represents each side of player. Black player moves first.
 ///
@@ -20,6 +21,11 @@ pub enum Color {
 }
 
 impl Color {
+    /// Returns an iterator of all variants.
+    pub fn iter() -> ColorIter {
+        ColorIter { current: Some(Color::Black) }
+    }
+
     /// Returns the color of the opposite side.
     ///
     /// # Examples
@@ -37,6 +43,12 @@ impl Color {
 
         }
     }
+
+    /// Converts the instance into the unique number for array indexing purpose.
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        *self as usize
+    }
 }
 
 impl fmt::Display for Color {
@@ -45,6 +57,31 @@ impl fmt::Display for Color {
             Color::Black => write!(f, "Black"),
             Color::White => write!(f, "White"),
         }
+    }
+}
+
+/// This struct is created by the [`iter`] method on [`Color`].
+///
+/// [`iter`]: ./struct.Color.html#method.iter
+/// [`Color`]: struct.Color.html
+pub struct ColorIter {
+    current: Option<Color>,
+}
+
+impl iter::Iterator for ColorIter {
+    type Item = Color;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.current;
+
+        if let Some(current) = self.current {
+            self.current = match current {
+                Color::Black => Some(Color::White),
+                Color::White => None,
+            }
+        }
+
+        current
     }
 }
 

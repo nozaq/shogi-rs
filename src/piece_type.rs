@@ -21,7 +21,7 @@ pub enum PieceType {
 }
 
 impl PieceType {
-    /// Returns an iterator over valid PieceType values.
+    /// Returns an iterator over all variants.
     pub fn iter() -> PieceTypeIter {
         PieceTypeIter::new()
     }
@@ -97,6 +97,12 @@ impl PieceType {
             _ => false,
         }
     }
+
+    /// Converts the instance into the unique number for array indexing purpose.
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        *self as usize
+    }
 }
 
 impl fmt::Display for PieceType {
@@ -122,14 +128,17 @@ impl fmt::Display for PieceType {
     }
 }
 
-/// An iterator over all `PieceType` values.
+/// This struct is created by the [`iter`] method on [`PieceType`].
+///
+/// [`iter`]: ./struct.PieceType.html#method.iter
+/// [`PieceType`]: struct.PieceType.html
 pub struct PieceTypeIter {
-    current: PieceType,
+    current: Option<PieceType>,
 }
 
 impl PieceTypeIter {
     fn new() -> PieceTypeIter {
-        PieceTypeIter { current: PieceType::King }
+        PieceTypeIter { current: Some(PieceType::King) }
     }
 }
 
@@ -137,28 +146,28 @@ impl iter::Iterator for PieceTypeIter {
     type Item = PieceType;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = match self.current {
-            PieceType::King => Some(PieceType::Rook),
-            PieceType::Rook => Some(PieceType::Bishop),
-            PieceType::Bishop => Some(PieceType::Gold),
-            PieceType::Gold => Some(PieceType::Silver),
-            PieceType::Silver => Some(PieceType::Knight),
-            PieceType::Knight => Some(PieceType::Lance),
-            PieceType::Lance => Some(PieceType::Pawn),
-            PieceType::Pawn => Some(PieceType::ProRook),
-            PieceType::ProRook => Some(PieceType::ProBishop),
-            PieceType::ProBishop => Some(PieceType::ProSilver),
-            PieceType::ProSilver => Some(PieceType::ProKnight),
-            PieceType::ProKnight => Some(PieceType::ProLance),
-            PieceType::ProLance => Some(PieceType::ProPawn),
-            PieceType::ProPawn => None,
-        };
+        let current = self.current;
 
-        if let Some(pt) = next {
-            self.current = pt;
+        if let Some(current) = self.current {
+            self.current = match current {
+                PieceType::King => Some(PieceType::Rook),
+                PieceType::Rook => Some(PieceType::Bishop),
+                PieceType::Bishop => Some(PieceType::Gold),
+                PieceType::Gold => Some(PieceType::Silver),
+                PieceType::Silver => Some(PieceType::Knight),
+                PieceType::Knight => Some(PieceType::Lance),
+                PieceType::Lance => Some(PieceType::Pawn),
+                PieceType::Pawn => Some(PieceType::ProRook),
+                PieceType::ProRook => Some(PieceType::ProBishop),
+                PieceType::ProBishop => Some(PieceType::ProSilver),
+                PieceType::ProSilver => Some(PieceType::ProKnight),
+                PieceType::ProKnight => Some(PieceType::ProLance),
+                PieceType::ProLance => Some(PieceType::ProPawn),
+                PieceType::ProPawn => None,
+            };
         }
 
-        next
+        current
     }
 }
 

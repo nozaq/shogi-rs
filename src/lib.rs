@@ -9,8 +9,10 @@
 //!
 //! ```
 //! use shogi::{Move, Position};
+//! use shogi::bitboard::Factory as BBFactory;
 //! use shogi::square::consts::*;
 //!
+//! BBFactory::init();
 //! let mut pos = Position::new();
 //!
 //! // Position can be set from the SFEN formatted string.
@@ -31,7 +33,9 @@
 
 #[macro_use()]
 extern crate itertools;
+extern crate bitintr;
 
+pub mod bitboard;
 pub mod color;
 pub mod error;
 pub mod hand;
@@ -43,6 +47,7 @@ pub mod square;
 pub mod time;
 pub mod usi;
 
+pub use self::bitboard::Bitboard;
 pub use self::color::Color;
 pub use self::error::{MoveError, SfenError};
 pub use self::square::Square;
