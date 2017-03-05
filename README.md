@@ -5,13 +5,15 @@
 [![crates.io](https://img.shields.io/crates/v/shogi.svg)](https://crates.io/crates/shogi)
 [![docs.rs](https://docs.rs/shogi/badge.svg)](https://docs.rs/shogi)
 
+A Bitboard-based shogi library in Rust. Board representation, move generation/validation, time control and USI protocol communication.
+
 [Documentation](https://nozaq.github.io/shogi-rs)
 
 ## Usage
 
 ```
 [dependencies]
-shogi = "0.4"
+shogi = "0.6"
 ```
 
 ## License
