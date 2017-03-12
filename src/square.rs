@@ -36,6 +36,7 @@ impl Square {
     /// Creates a new instance of `Square`.
     ///
     /// `file` can take a value from 0('1') to 8('9'), while `rank` is from 0('a') to 9('i').
+    #[inline(always)]
     pub fn new(file: u8, rank: u8) -> Option<Square> {
         if file > 8 || rank > 8 {
             return None;
@@ -66,25 +67,29 @@ impl Square {
     }
 
     /// Creates a new instance of `Square` with the given index value.
+    #[inline(always)]
     pub fn from_index(index: u8) -> Option<Square> {
-        if index >= 81 {
-            return None;
+        if index < 81 {
+            Some(Square { inner: index })
+        } else {
+            None
         }
-
-        Some(Square { inner: index })
     }
 
     /// Returns an iterator of all variants.
+    #[inline(always)]
     pub fn iter() -> SquareIter {
         SquareIter { current: 0 }
     }
 
     /// Returns a file of the square.
+    #[inline(always)]
     pub fn file(&self) -> u8 {
         self.inner / 9
     }
 
     /// Returns a rank of the square.
+    #[inline(always)]
     pub fn rank(&self) -> u8 {
         self.inner % 9
     }

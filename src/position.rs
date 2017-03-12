@@ -139,6 +139,11 @@ impl Position {
         &self.move_history
     }
 
+    // Returns a bitboard which contains the given piece type and color.
+    pub fn bb_of(&self, pt: PieceType, c: Color) -> Bitboard {
+        &self.type_bb[pt.index()] & &self.color_bb[c.index()]
+    }
+
     /// Checks if a player with the given color can declare winning.
     ///
     /// See the section 25 in http://www.computer-shogi.org/wcsc26/rule.pdf for more detail.
@@ -165,8 +170,7 @@ impl Position {
                     _ => 1,
                 };
 
-                let bb = &(&self.type_bb[pt.index()] & &self.color_bb[c.index()]) &
-                         &BBFactory::promote_zone(c);
+                let bb = &self.bb_of(pt, c) & &BBFactory::promote_zone(c);
                 let count = bb.count() as u8;
                 let point = count * unit;
 
@@ -224,7 +228,7 @@ impl Position {
     }
 
     fn get_attackers_of_type(&self, pt: PieceType, sq: Square, c: Color) -> Bitboard {
-        let bb = &self.type_bb[pt.index()] & &self.color_bb[c.index()];
+        let bb = self.bb_of(pt, c);
 
         if bb.is_empty() {
             return bb;
@@ -235,11 +239,11 @@ impl Position {
             color: c,
         };
 
-        &bb & &self.move_candidates(sq, &attack_pc.flip())
+        &bb & &self.attacks_from(sq, &attack_pc.flip())
     }
 
     fn find_king(&self, c: Color) -> Option<Square> {
-        let mut bb = &self.type_bb[PieceType::King.index()] & &self.color_bb[c.index()];
+        let mut bb = self.bb_of(PieceType::King, c);
         if bb.is_any() { Some(bb.pop()) } else { None }
     }
 
@@ -300,7 +304,7 @@ impl Position {
             return Err(MoveError::Inconsistent);
         }
 
-        if !self.move_candidates(from, &moved).any(|sq| sq == to) {
+        if !self.attacks_from(from, &moved).any(|sq| sq == to) {
             return Err(MoveError::Inconsistent);
         }
 
@@ -427,7 +431,7 @@ impl Position {
 
                         if not_attacked {
                             // can the opponent's king evade?
-                            if self.move_candidates(king_sq, &pc).all(|sq| {
+                            if self.attacks_from(king_sq, &pc).all(|sq| {
                                 if let Some(pc) = *self.piece_at(sq) {
                                     if pc.color == opponent {
                                         return true;
@@ -485,7 +489,7 @@ impl Position {
          (PieceType::Lance, BBFactory::lance_attack(c, ksq, &Bitboard::empty()))]
             .iter()
             .fold(Bitboard::empty(), |mut accum, &(pt, ref mask)| {
-                let bb = &(&self.type_bb[pt.index()] & &self.color_bb[c.flip().index()]) & mask;
+                let bb = &self.bb_of(pt, c.flip()) & mask;
 
                 for psq in bb {
                     let between = &BBFactory::between(ksq, psq) & &self.occupied_bb;
@@ -561,7 +565,7 @@ impl Position {
     }
 
     /// Returns a list of squares to where the given pieve at the given square can move.
-    pub fn move_candidates(&self, sq: Square, p: &Piece) -> Bitboard {
+    pub fn attacks_from(&self, sq: Square, p: &Piece) -> Bitboard {
         let bb = match p.piece_type {
             PieceType::Rook => BBFactory::rook_attack(sq, &self.occupied_bb),
             PieceType::Bishop => BBFactory::bishop_attack(sq, &self.occupied_bb),
@@ -924,6 +928,10 @@ mod tests {
     use super::*;
     use square::consts::*;
 
+    const SFEN_HIRATE: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
+    const SFEN_MATSURI: &str = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w \
+                                RG5gsnp 1";
+
     fn setup() {
         BBFactory::init();
     }
@@ -947,7 +955,7 @@ mod tests {
         setup();
 
         let test_cases =
-            [("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1", false, false),
+            [(SFEN_HIRATE, false, false),
              ("9/3r5/9/9/6B2/9/9/9/3K5 b P 1", true, false),
              ("ln2r1knl/2gb1+Rg2/4Pp1p1/p1pp1sp1p/1N2pN1P1/2P2PP2/PP1G1S2R/1SG6/LK6L w 2PSp 1",
               false,
@@ -988,11 +996,11 @@ mod tests {
     }
 
     #[test]
-    fn move_candidates() {
+    fn attacks_from() {
         setup();
 
         let mut pos = Position::new();
-        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+        pos.set_sfen(SFEN_HIRATE)
             .expect("failed to parse SFEN string");
 
         let mut sum = 0;
@@ -1001,7 +1009,7 @@ mod tests {
 
             if let Some(pc) = *pc {
                 if pc.color == pos.side_to_move() {
-                    sum += pos.move_candidates(sq, &pc).count();
+                    sum += pos.attacks_from(sq, &pc).count();
                 }
             }
         }
@@ -1013,7 +1021,7 @@ mod tests {
     fn make_normal_move() {
         setup();
 
-        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
+        let base_sfen = SFEN_MATSURI;
         let test_cases = [(SQ_2B, SQ_2C, false, true),
                           (SQ_7C, SQ_6E, false, true),
                           (SQ_3I, SQ_4H, true, true),
@@ -1041,7 +1049,7 @@ mod tests {
     fn make_drop_move() {
         setup();
 
-        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w GR5pnsg 1";
+        let base_sfen = SFEN_MATSURI;
         let test_cases = [(SQ_5E, PieceType::Pawn, true),
                           (SQ_5E, PieceType::Rook, false),
                           (SQ_9A, PieceType::Pawn, false),
@@ -1219,7 +1227,7 @@ mod tests {
     fn unmake_move() {
         setup();
 
-        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RG5gsnp 1";
+        let base_sfen = SFEN_MATSURI;
         let test_cases = [Move::Drop {
                               to: SQ_5E,
                               piece_type: PieceType::Pawn,
@@ -1240,7 +1248,7 @@ mod tests {
 
         let mut pos = Position::new();
 
-        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+        pos.set_sfen(SFEN_HIRATE)
             .expect("failed to parse SFEN string");
         assert!(!pos.try_declare_winning(Color::Black));
         assert!(!pos.try_declare_winning(Color::White));
@@ -1292,7 +1300,7 @@ mod tests {
 
         let mut pos = Position::new();
 
-        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+        pos.set_sfen(SFEN_HIRATE)
             .expect("failed to parse SFEN string");
 
         let filled_squares = [(0, 0, PieceType::Lance, Color::White),
@@ -1385,7 +1393,7 @@ mod tests {
     fn to_sfen() {
         setup();
 
-        let test_cases = ["lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
+        let test_cases = [SFEN_HIRATE,
                           "lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p \
                            1024"];
 
