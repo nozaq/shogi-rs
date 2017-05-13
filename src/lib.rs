@@ -2,7 +2,6 @@
 //!
 //! `shogi` provides a various types and implementations for representing concepts and rules in Shogi.
 //! Most types can be created programatically while they can also be deserialized from / serialized to SFEN format.
-//! `usi` module provides APIs to deal with USI commands in a type-safe way.
 //! See http://www.geocities.jp/shogidokoro/usi.html for more detail about UCI protocol specification and SFEN format.
 //!
 //! # Examples
@@ -45,7 +44,6 @@ pub mod piece;
 pub mod position;
 pub mod square;
 pub mod time;
-pub mod usi;
 
 pub use self::bitboard::Bitboard;
 pub use self::color::Color;
