@@ -1,3 +1,9 @@
+<a name="0.7.0"></a>
+## 0.7.0 (2017-05-13)
+
+* Extract usi module intoa an external crate. Please check [usi-rs](https://github.com/nozaq/usi-rs).
+
+
 <a name="0.6.0"></a>
 ## 0.6.0 (2017-03-05)
 
