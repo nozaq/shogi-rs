@@ -1,5 +1,5 @@
 language: rust
-sudo: false
+sudo: required
 rust:
 - nightly
 - beta
@@ -11,7 +11,6 @@ addons:
     - libelf-dev
     - libdw-dev
     - binutils-dev
-
 before_script:
 - |
   pip install 'travis-cargo<0.2' --user &&
@@ -19,30 +18,28 @@ before_script:
 script:
 - cargo build
 - cargo test
-- if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then
-      cargo bench --verbose;
-  fi
+- if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then cargo bench --verbose; fi
 - cargo doc
 after_success:
 - travis-cargo --only stable doc-upload
-# - travis-cargo coveralls --no-sudo --verify
-# Temporary workaround for making coverall.io integration to work.
-# https://github.com/huonw/travis-cargo/issues/58
-# Thanks to https://users.rust-lang.org/t/tutorial-how-to-collect-test-coverages-for-rust-project/650/39.
 - |
   if [ "$TRAVIS_RUST_VERSION" = "stable" ]; then
-    wget https://github.com/SimonKagstrom/kcov/archive/v33.tar.gz &&
-    tar xzf v33.tar.gz && mkdir kcov-33/build && cd kcov-33/build &&
-    cmake -DCMAKE_INSTALL_PREFIX=~/.local .. && make &&
-    make install &&
+    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+    tar xzf master.tar.gz && cd kcov-master &&
+    mkdir build && cd build &&
+    cmake .. && make && sudo make install &&
     cd ../.. &&
-    ~/.local/bin/kcov --verify \
-        --coveralls-id=$TRAVIS_JOB_ID \
-        --exclude-pattern=/.cargo \
-        target/kcov target/debug/shogi-*
+    rm -rf kcov-master &&
+    cargo clean && cargo test --no-run &&
+    for file in target/debug/*-*; do 
+      if [ -x $file ]; then 
+        mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo --verify "target/cov/$(basename $file)" "$file";
+      fi
+    done  &&
+    kcov --coveralls-id=$TRAVIS_JOB_ID --merge target/cov target/cov/*
   fi
-
 env:
   global:
   - TRAVIS_CARGO_NIGHTLY_FEATURE=""
-  - secure: dLvawrNFE1IeBRsaZ+TGDiOoai8dU8/zjDYPvX6dxpjcuQzhMKXvEBEu/6vNSwUK+uSe5W/DnYBywgf4KEOW95r1JVxiVqiaSF4eJG/xXsxzhfD2wvi9UfBsNnGIjxyxhM/tCh4gkaCNLw0BGcJz9t62BDGtgXwQ+rtE8vJKbENnqwS+aGH+GRt59gSeIM3vYjR9l6XPFSmolnp/ustYJ1wyRO2O5Lj777io5WU6u3ZIzZx1OH/yclPPYMSvFEZXQ1SJDnjfN1FgKBlCwdqg9JzTnI35LY7riqdjEXqPVUqYH33LMP023hHCLIOUZi/SHZnFZNncyjBQFhRfZ4sQKvT45v9HmTOTMa0LtbEnapv0+GkLfjipE8/2ke+FGp3XL2ytLFlPHxamwVeDDnAtDH8rYFLhefB3pbsRk0GZExBB/7r+jLXL15ZCPi3mVYWm+M6BW6AHu5ZG8LzpPfy9TAQSsmwYCeH9ylX+/qf0EPUakgKfKRRlsGRQOCVRQkFuIwnHfwMkNL9Ezpbc3VpHcJ2PCDM9U3sxUPGU2jNxCArNtb11NGkSKBQSfZszwZbXL6Ji/GvNW5XV5VYLMh9RDtrjM/sJSrud6xtzGKqYwSvK8H3ppQKc4GjcunhLDDxNMdcZg76YOTXCTOXaBGivsqQ48fHppp1YnWSzts/KP4s=
+  - secure: PEu+hSpQ+1ZLItyDaGmi3/mBqjaEEiKSElG4I5sq1ZfesHQyHqXU75GzmUL3KNRj11KzUs9zI+DfEHaDN1krqtePr0lyPfAyQh5TNIExPGsI7RSlC9Npq+nn/nw4xkoIj3my76zLS5kTSwpBw74Zm+8MzU+e8CnWVZfrOmSRIOSo9BRjp7d0Ws86W3yrmSoIWUmhmTw0MjHxt2XdL+z3QxnTG0KSK6q5IMH6QKQBKS8poc8WVkC/K+uGLcBu2eA4UECOQNlcCqUcMD/RW8gTYPeDwx/wXqSv0V3eH5XcGyRkQVlalkuC7cmp2mIZScwzVcRRsyP4LcgXDqO/BXffME17WTqEG4mZ68y1nBW9N0bKpr4HEWsbN5OlkeuDR3BStqZ4byyltIEHFBysnEttharWEQebgmty/70AAbgouNxJOAi6Fd4svNSsCs0JzT4/Al/XxpJEV1BzLzyJv3vhWpDhtwcgmtROr2bDjzA1bghVPRqEnLUtzdUvKS/GUVoPJ1l3aQUKgwgFb+j/01rT6UpPLxl4q12YqTL4mBlpI9kE1VF4eTAZB8y2taEIZA4IoQotSavAda/qn40Pfs4weEgDkjuTZ/LRFMoBeITYrOMhkr5MNsVGLO8WIuQDGrf9lfacv3+ZzMNEG7N/E6lTfXb3chzIQLxM0+hi+kJ2vCk=
+  
