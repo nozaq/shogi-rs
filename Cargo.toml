@@ -16,6 +16,7 @@ itertools = "0.6.0"
 
 [badges]
 travis-ci = { repository = "nozaq/shogi-rs" }
+appveyor = { repository = "nozaq/shogi-rs" }
 
 [profile.test]
 opt-level = 0
