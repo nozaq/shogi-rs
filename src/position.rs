@@ -119,6 +119,11 @@ impl Position {
         self.board.get(sq)
     }
 
+    /// Returns a bitboard containing pieces of the given player.
+    pub fn player_bb(&self, c: Color) -> &Bitboard {
+        &self.color_bb[c.index()]
+    }
+
     /// Returns the number of the given piece in hand.
     pub fn hand(&self, p: &Piece) -> u8 {
         self.hand.get(p)
@@ -959,6 +964,32 @@ mod tests {
             pos.set_sfen(case.0).expect("failed to parse SFEN string");
             assert_eq!(case.1, pos.in_check(Color::Black));
             assert_eq!(case.2, pos.in_check(Color::White));
+        }
+    }
+
+    #[test]
+    fn player_bb() {
+        setup();
+
+        let cases: &[(&str, &[Square], &[Square])] =
+            &[("R6gk/9/8p/9/4p4/9/9/8L/B8 b - 1", &[SQ_9A, SQ_1H, SQ_9I], &[SQ_2A, SQ_1A, SQ_1C, SQ_5E]),
+              ("9/3r5/9/9/6B2/9/9/9/3K5 b P 1", &[SQ_3E, SQ_6I], &[SQ_6B])];
+
+        let mut pos = Position::new();
+        for case in cases {
+            pos.set_sfen(case.0).expect("faled to parse SFEN string");
+            let black = pos.player_bb(Color::Black);
+            let white = pos.player_bb(Color::White);
+
+            assert_eq!(case.1.len(), black.count() as usize);
+            for sq in case.1 {
+                assert!((black & *sq).is_any());
+            }
+
+            assert_eq!(case.2.len(), white.count() as usize);
+            for sq in case.2 {
+                assert!((white & *sq).is_any());
+            }
         }
     }
 
