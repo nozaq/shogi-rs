@@ -1,0 +1,36 @@
+[package]
+name = "shogi"
+version = "0.7.0"
+authors = ["nozaq"]
+description = "Bitboard based Shogi library. Board representation, move handlings and various time control utilities."
+keywords = ["shogi", "move", "usi", "sfen"]
+categories = ["game-engines"]
+repository = "https://github.com/nozaq/shogi-rs"
+documentation = "http://nozaq.github.io/shogi-rs"
+readme = "README.md"
+license = "MIT"
+
+[dependencies]
+bitintr = "0.1.18"
+itertools = "0.6.0"
+
+[badges]
+travis-ci = { repository = "nozaq/shogi-rs" }
+appveyor = { repository = "nozaq/shogi-rs" }
+
+[profile.test]
+opt-level = 0
+debug = true
+lto = false
+debug-assertions = true
+codegen-units = 1
+panic = 'unwind'
+
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
