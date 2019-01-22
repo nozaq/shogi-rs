@@ -1,7 +1,6 @@
 use std::fmt;
 use std::iter;
 use std::ops;
-use bitintr::x86::bmi2::pext;
 
 use {Color, PieceType, Square};
 
