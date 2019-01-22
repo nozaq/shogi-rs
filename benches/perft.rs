@@ -1,13 +1,13 @@
 #![feature(test)]
 
-extern crate test;
 extern crate shogi;
+extern crate test;
 
 #[cfg(test)]
 mod tests {
-    use test::Bencher;
-    use shogi::{Color, Position, Square};
     use shogi::bitboard::Factory;
+    use shogi::{Color, Position, Square};
+    use test::Bencher;
 
     #[bench]
     fn perft(b: &mut Bencher) {

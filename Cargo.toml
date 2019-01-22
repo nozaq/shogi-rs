@@ -12,7 +12,7 @@ license = "MIT"
 
 [dependencies]
 bitintr = "0.2.0"
-itertools = "0.6.0"
+itertools = "0.8.0"
 
 [badges]
 travis-ci = { repository = "nozaq/shogi-rs" }
