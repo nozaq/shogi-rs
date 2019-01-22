@@ -1,4 +1,4 @@
-use {Color, Piece, PieceType};
+use crate::{Color, Piece, PieceType};
 
 /// Manages the number of each pieces in each player's hand.
 ///

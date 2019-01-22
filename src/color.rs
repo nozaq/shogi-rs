@@ -23,7 +23,9 @@ pub enum Color {
 impl Color {
     /// Returns an iterator of all variants.
     pub fn iter() -> ColorIter {
-        ColorIter { current: Some(Color::Black) }
+        ColorIter {
+            current: Some(Color::Black),
+        }
     }
 
     /// Returns the color of the opposite side.
@@ -40,7 +42,6 @@ impl Color {
         match *self {
             Color::Black => Color::White,
             Color::White => Color::Black,
-
         }
     }
 

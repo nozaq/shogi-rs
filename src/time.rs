@@ -1,7 +1,7 @@
 use std::cmp::min;
 use std::time::Duration;
 
-use Color;
+use crate::Color;
 
 /// Represents various time controls.
 ///
@@ -97,7 +97,11 @@ impl TimeControl {
     /// ```
     pub fn consume(&mut self, c: Color, d: Duration) -> bool {
         match self {
-            &mut TimeControl::Byoyomi { ref mut black_time, ref mut white_time, ref byoyomi } => {
+            &mut TimeControl::Byoyomi {
+                ref mut black_time,
+                ref mut white_time,
+                ref byoyomi,
+            } => {
                 let target_time = if c == Color::Black {
                     black_time
                 } else {
@@ -109,10 +113,12 @@ impl TimeControl {
                 }
                 *target_time -= min(*target_time, d);
             }
-            &mut TimeControl::FischerClock { ref mut black_time,
-                                             ref mut white_time,
-                                             ref black_inc,
-                                             ref white_inc } => {
+            &mut TimeControl::FischerClock {
+                ref mut black_time,
+                ref mut white_time,
+                ref black_inc,
+                ref white_inc,
+            } => {
                 let (stm_time, opponent_time, inc_time) = if c == Color::Black {
                     (black_time, white_time, white_inc)
                 } else {
@@ -138,7 +144,11 @@ mod tests {
     #[test]
     fn consume_byoyomi() {
         // (black|white)_time, byoyomi, consume, remaining
-        let ok_cases = [(5000, 1000, 1000, 4000), (5000, 1000, 5000, 0), (5000, 1000, 6000, 0)];
+        let ok_cases = [
+            (5000, 1000, 1000, 4000),
+            (5000, 1000, 5000, 0),
+            (5000, 1000, 6000, 0),
+        ];
 
         // (black|white)_time, byoyomi, consume
         let ng_cases = [(5000, 1000, 6001), (5000, 0, 5001)];
@@ -174,8 +184,11 @@ mod tests {
     #[test]
     fn consume_fischer() {
         // black_time, white_time, black_inc, white_inc, consume, remaining_black, remaining_white
-        let ok_cases =
-            [(50, 50, 5, 5, 10, 40, 55), (50, 50, 5, 5, 50, 0, 55), (50, 50, 0, 0, 50, 0, 50)];
+        let ok_cases = [
+            (50, 50, 5, 5, 10, 40, 55),
+            (50, 50, 5, 5, 50, 0, 55),
+            (50, 50, 0, 0, 50, 0, 50),
+        ];
 
         // black_time, white_time, black_inc, white_inc, consume
         let ng_cases = [(50, 50, 5, 5, 51)];

@@ -1,6 +1,6 @@
+use crate::Color;
 use std::fmt;
 use std::iter;
-use Color;
 
 const ASCII_1: u8 = '1' as u8;
 const ASCII_9: u8 = '9' as u8;
@@ -41,28 +41,38 @@ impl Square {
             return None;
         }
 
-        Some(Square { inner: file * 9 + rank })
+        Some(Square {
+            inner: file * 9 + rank,
+        })
     }
 
     /// Creates a new instance of `Square` from SFEN formatted string.
     pub fn from_sfen(s: &str) -> Option<Square> {
         let bytes: &[u8] = s.as_bytes();
 
-        if bytes.len() != 2 || bytes[0] < ASCII_1 || bytes[0] > ASCII_9 ||
-           bytes[1] < ASCII_LOWER_A || bytes[1] > ASCII_LOWER_I {
+        if bytes.len() != 2
+            || bytes[0] < ASCII_1
+            || bytes[0] > ASCII_9
+            || bytes[1] < ASCII_LOWER_A
+            || bytes[1] > ASCII_LOWER_I
+        {
             return None;
         }
 
         let file = bytes[0] - ASCII_1;
         let rank = bytes[1] - ASCII_LOWER_A;
 
-        debug_assert!(file < 9 && rank < 9,
-                      "{} parsed as (file: {}, rank: {})",
-                      s,
-                      file,
-                      rank);
+        debug_assert!(
+            file < 9 && rank < 9,
+            "{} parsed as (file: {}, rank: {})",
+            s,
+            file,
+            rank
+        );
 
-        Some(Square { inner: file * 9 + rank })
+        Some(Square {
+            inner: file * 9 + rank,
+        })
     }
 
     /// Creates a new instance of `Square` with the given index value.
@@ -110,7 +120,9 @@ impl Square {
             return None;
         }
 
-        Some(Square { inner: (f * 9 + r) as u8 })
+        Some(Square {
+            inner: (f * 9 + r) as u8,
+        })
     }
 
     /// Returns a relative rank as if the specified color is black.
@@ -148,13 +160,17 @@ impl Square {
 
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        debug_assert!(self.file() < 9 && self.rank() < 9,
-                      "trying to stringify an invalid square: {:?}",
-                      self);
-        write!(f,
-               "{}{}",
-               (self.file() + ASCII_1) as char,
-               (self.rank() + ASCII_LOWER_A) as char)
+        debug_assert!(
+            self.file() < 9 && self.rank() < 9,
+            "trying to stringify an invalid square: {:?}",
+            self
+        );
+        write!(
+            f,
+            "{}{}",
+            (self.file() + ASCII_1) as char,
+            (self.rank() + ASCII_LOWER_A) as char
+        )
     }
 }
 
@@ -175,15 +191,15 @@ pub mod consts {
         };
     }
 
-    make_square!{0, SQ_1A SQ_1B SQ_1C SQ_1D SQ_1E SQ_1F SQ_1G SQ_1H SQ_1I
-                    SQ_2A SQ_2B SQ_2C SQ_2D SQ_2E SQ_2F SQ_2G SQ_2H SQ_2I
-                    SQ_3A SQ_3B SQ_3C SQ_3D SQ_3E SQ_3F SQ_3G SQ_3H SQ_3I
-                    SQ_4A SQ_4B SQ_4C SQ_4D SQ_4E SQ_4F SQ_4G SQ_4H SQ_4I
-                    SQ_5A SQ_5B SQ_5C SQ_5D SQ_5E SQ_5F SQ_5G SQ_5H SQ_5I
-                    SQ_6A SQ_6B SQ_6C SQ_6D SQ_6E SQ_6F SQ_6G SQ_6H SQ_6I
-                    SQ_7A SQ_7B SQ_7C SQ_7D SQ_7E SQ_7F SQ_7G SQ_7H SQ_7I
-                    SQ_8A SQ_8B SQ_8C SQ_8D SQ_8E SQ_8F SQ_8G SQ_8H SQ_8I
-                    SQ_9A SQ_9B SQ_9C SQ_9D SQ_9E SQ_9F SQ_9G SQ_9H SQ_9I}
+    make_square! {0, SQ_1A SQ_1B SQ_1C SQ_1D SQ_1E SQ_1F SQ_1G SQ_1H SQ_1I
+    SQ_2A SQ_2B SQ_2C SQ_2D SQ_2E SQ_2F SQ_2G SQ_2H SQ_2I
+    SQ_3A SQ_3B SQ_3C SQ_3D SQ_3E SQ_3F SQ_3G SQ_3H SQ_3I
+    SQ_4A SQ_4B SQ_4C SQ_4D SQ_4E SQ_4F SQ_4G SQ_4H SQ_4I
+    SQ_5A SQ_5B SQ_5C SQ_5D SQ_5E SQ_5F SQ_5G SQ_5H SQ_5I
+    SQ_6A SQ_6B SQ_6C SQ_6D SQ_6E SQ_6F SQ_6G SQ_6H SQ_6I
+    SQ_7A SQ_7B SQ_7C SQ_7D SQ_7E SQ_7F SQ_7G SQ_7H SQ_7I
+    SQ_8A SQ_8B SQ_8C SQ_8D SQ_8E SQ_8F SQ_8G SQ_8H SQ_8I
+    SQ_9A SQ_9B SQ_9C SQ_9D SQ_9E SQ_9F SQ_9G SQ_9H SQ_9I}
 }
 
 /// This struct is created by the [`iter`] method on [`Square`].
@@ -231,7 +247,13 @@ mod tests {
 
     #[test]
     fn from_sfen() {
-        let ok_cases = [("9a", 8, 0), ("1a", 0, 0), ("5e", 4, 4), ("9i", 8, 8), ("1i", 0, 8)];
+        let ok_cases = [
+            ("9a", 8, 0),
+            ("1a", 0, 0),
+            ("5e", 4, 4),
+            ("9i", 8, 8),
+            ("1i", 0, 8),
+        ];
         let ng_cases = ["", "9j", "_a", "a9", "9 ", " a", "9", "foo"];
 
         for case in ok_cases.iter() {
@@ -242,9 +264,11 @@ mod tests {
         }
 
         for case in ng_cases.iter() {
-            assert!(Square::from_sfen(case).is_none(),
-                    "{} should cause an error",
-                    case);
+            assert!(
+                Square::from_sfen(case).is_none(),
+                "{} should cause an error",
+                case
+            );
         }
     }
 
@@ -259,7 +283,13 @@ mod tests {
 
     #[test]
     fn to_sfen() {
-        let cases = [("9a", 8, 0), ("1a", 0, 0), ("5e", 4, 4), ("9i", 8, 8), ("1i", 0, 8)];
+        let cases = [
+            ("9a", 8, 0),
+            ("1a", 0, 0),
+            ("5e", 4, 4),
+            ("9i", 8, 8),
+            ("1i", 0, 8),
+        ];
 
         for case in cases.iter() {
             let sq = Square::new(case.1, case.2).unwrap();
@@ -271,13 +301,15 @@ mod tests {
     fn shift() {
         let sq = consts::SQ_5E;
 
-        let ok_cases = [(-4, -4, 0, 0),
-                        (-4, 0, 0, 4),
-                        (0, -4, 4, 0),
-                        (0, 0, 4, 4),
-                        (4, 0, 8, 4),
-                        (0, 4, 4, 8),
-                        (4, 4, 8, 8)];
+        let ok_cases = [
+            (-4, -4, 0, 0),
+            (-4, 0, 0, 4),
+            (0, -4, 4, 0),
+            (0, 0, 4, 4),
+            (4, 0, 8, 4),
+            (0, 4, 4, 8),
+            (4, 4, 8, 8),
+        ];
 
         let ng_cases = [(-5, -4), (-4, -5), (5, 0), (0, 5)];
 
@@ -294,15 +326,17 @@ mod tests {
 
     #[test]
     fn relative_rank() {
-        let cases = [(0, 0, 0, 8),
-                     (0, 1, 1, 7),
-                     (0, 2, 2, 6),
-                     (0, 3, 3, 5),
-                     (0, 4, 4, 4),
-                     (0, 5, 5, 3),
-                     (0, 6, 6, 2),
-                     (0, 7, 7, 1),
-                     (0, 8, 8, 0)];
+        let cases = [
+            (0, 0, 0, 8),
+            (0, 1, 1, 7),
+            (0, 2, 2, 6),
+            (0, 3, 3, 5),
+            (0, 4, 4, 4),
+            (0, 5, 5, 3),
+            (0, 6, 6, 2),
+            (0, 7, 7, 1),
+            (0, 8, 8, 0),
+        ];
 
         for case in cases.iter() {
             let sq = Square::new(case.0, case.1).unwrap();
@@ -313,15 +347,17 @@ mod tests {
 
     #[test]
     fn in_promotion_zone() {
-        let cases = [(0, 0, true, false),
-                     (0, 1, true, false),
-                     (0, 2, true, false),
-                     (0, 3, false, false),
-                     (0, 4, false, false),
-                     (0, 5, false, false),
-                     (0, 6, false, true),
-                     (0, 7, false, true),
-                     (0, 8, false, true)];
+        let cases = [
+            (0, 0, true, false),
+            (0, 1, true, false),
+            (0, 2, true, false),
+            (0, 3, false, false),
+            (0, 4, false, false),
+            (0, 5, false, false),
+            (0, 6, false, true),
+            (0, 7, false, true),
+            (0, 8, false, true),
+        ];
 
         for case in cases.iter() {
             let sq = Square::new(case.0, case.1).unwrap();

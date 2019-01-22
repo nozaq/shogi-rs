@@ -1,6 +1,5 @@
 #![feature(test)]
 
-extern crate shogi;
 extern crate test;
 
 #[cfg(test)]

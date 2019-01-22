@@ -2,7 +2,7 @@ use std::fmt;
 use std::iter;
 use std::ops;
 
-use {Color, PieceType, Square};
+use super::{Color, PieceType, Square};
 
 /// Represents a board state in which each square takes two possible values, filled or empty.
 ///
@@ -93,7 +93,9 @@ impl<'a> ops::Not for &'a Bitboard {
 
     #[inline(always)]
     fn not(self) -> Bitboard {
-        Bitboard { p: [!self.p[0], !self.p[1]] }
+        Bitboard {
+            p: [!self.p[0], !self.p[1]],
+        }
     }
 }
 
@@ -102,7 +104,9 @@ impl<'a, 'b> ops::BitAnd<&'a Bitboard> for &'b Bitboard {
 
     #[inline(always)]
     fn bitand(self, rhs: &'a Bitboard) -> Bitboard {
-        Bitboard { p: [self.p[0] & rhs.p[0], self.p[1] & rhs.p[1]] }
+        Bitboard {
+            p: [self.p[0] & rhs.p[0], self.p[1] & rhs.p[1]],
+        }
     }
 }
 
@@ -119,7 +123,9 @@ impl<'a, 'b> ops::BitOr<&'a Bitboard> for &'b Bitboard {
 
     #[inline(always)]
     fn bitor(self, rhs: &'a Bitboard) -> Bitboard {
-        Bitboard { p: [self.p[0] | rhs.p[0], self.p[1] | rhs.p[1]] }
+        Bitboard {
+            p: [self.p[0] | rhs.p[0], self.p[1] | rhs.p[1]],
+        }
     }
 }
 
@@ -136,7 +142,9 @@ impl<'a, 'b> ops::BitXor<&'a Bitboard> for &'b Bitboard {
 
     #[inline(always)]
     fn bitxor(self, rhs: &'a Bitboard) -> Bitboard {
-        Bitboard { p: [self.p[0] ^ rhs.p[0], self.p[1] ^ rhs.p[1]] }
+        Bitboard {
+            p: [self.p[0] ^ rhs.p[0], self.p[1] ^ rhs.p[1]],
+        }
     }
 }
 
@@ -202,17 +210,21 @@ impl<'a> ops::BitXorAssign<Square> for Bitboard {
 
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
-        try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+        r#try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
+        r#try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
 
         for rank in 0..9 {
-            try!(write!(f, "|"));
+            r#try!(write!(f, "|"));
             for file in (0..9).rev() {
                 let sq = Square::new(file, rank).unwrap();
-                try!(write!(f, " {} |", if (self & sq).is_empty() { " " } else { "X" }));
+                r#try!(write!(
+                    f,
+                    " {} |",
+                    if (self & sq).is_empty() { " " } else { "X" }
+                ));
             }
-            try!(writeln!(f, " {}", ('a' as u8 + rank) as char));
-            try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+            r#try!(writeln!(f, " {}", ('a' as u8 + rank) as char));
+            r#try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
         }
 
         Ok(())
@@ -236,87 +248,89 @@ impl iter::Iterator for Bitboard {
 // Constants
 /////////////////////////////////////////////////////////////////////////////
 
-const SQUARE_BB: [Bitboard; 81] = [Bitboard { p: [1 << 0, 0] },
-                                   Bitboard { p: [1 << 1, 0] },
-                                   Bitboard { p: [1 << 2, 0] },
-                                   Bitboard { p: [1 << 3, 0] },
-                                   Bitboard { p: [1 << 4, 0] },
-                                   Bitboard { p: [1 << 5, 0] },
-                                   Bitboard { p: [1 << 6, 0] },
-                                   Bitboard { p: [1 << 7, 0] },
-                                   Bitboard { p: [1 << 8, 0] },
-                                   Bitboard { p: [1 << 9, 0] },
-                                   Bitboard { p: [1 << 10, 0] },
-                                   Bitboard { p: [1 << 11, 0] },
-                                   Bitboard { p: [1 << 12, 0] },
-                                   Bitboard { p: [1 << 13, 0] },
-                                   Bitboard { p: [1 << 14, 0] },
-                                   Bitboard { p: [1 << 15, 0] },
-                                   Bitboard { p: [1 << 16, 0] },
-                                   Bitboard { p: [1 << 17, 0] },
-                                   Bitboard { p: [1 << 18, 0] },
-                                   Bitboard { p: [1 << 19, 0] },
-                                   Bitboard { p: [1 << 20, 0] },
-                                   Bitboard { p: [1 << 21, 0] },
-                                   Bitboard { p: [1 << 22, 0] },
-                                   Bitboard { p: [1 << 23, 0] },
-                                   Bitboard { p: [1 << 24, 0] },
-                                   Bitboard { p: [1 << 25, 0] },
-                                   Bitboard { p: [1 << 26, 0] },
-                                   Bitboard { p: [1 << 27, 0] },
-                                   Bitboard { p: [1 << 28, 0] },
-                                   Bitboard { p: [1 << 29, 0] },
-                                   Bitboard { p: [1 << 30, 0] },
-                                   Bitboard { p: [1 << 31, 0] },
-                                   Bitboard { p: [1 << 32, 0] },
-                                   Bitboard { p: [1 << 33, 0] },
-                                   Bitboard { p: [1 << 34, 0] },
-                                   Bitboard { p: [1 << 35, 0] },
-                                   Bitboard { p: [1 << 36, 0] },
-                                   Bitboard { p: [1 << 37, 0] },
-                                   Bitboard { p: [1 << 38, 0] },
-                                   Bitboard { p: [1 << 39, 0] },
-                                   Bitboard { p: [1 << 40, 0] },
-                                   Bitboard { p: [1 << 41, 0] },
-                                   Bitboard { p: [1 << 42, 0] },
-                                   Bitboard { p: [1 << 43, 0] },
-                                   Bitboard { p: [1 << 44, 0] },
-                                   Bitboard { p: [1 << 45, 0] },
-                                   Bitboard { p: [1 << 46, 0] },
-                                   Bitboard { p: [1 << 47, 0] },
-                                   Bitboard { p: [1 << 48, 0] },
-                                   Bitboard { p: [1 << 49, 0] },
-                                   Bitboard { p: [1 << 50, 0] },
-                                   Bitboard { p: [1 << 51, 0] },
-                                   Bitboard { p: [1 << 52, 0] },
-                                   Bitboard { p: [1 << 53, 0] },
-                                   Bitboard { p: [1 << 54, 0] },
-                                   Bitboard { p: [1 << 55, 0] },
-                                   Bitboard { p: [1 << 56, 0] },
-                                   Bitboard { p: [1 << 57, 0] },
-                                   Bitboard { p: [1 << 58, 0] },
-                                   Bitboard { p: [1 << 59, 0] },
-                                   Bitboard { p: [1 << 60, 0] },
-                                   Bitboard { p: [1 << 61, 0] },
-                                   Bitboard { p: [1 << 62, 0] },
-                                   Bitboard { p: [0, 1 << 0] },
-                                   Bitboard { p: [0, 1 << 1] },
-                                   Bitboard { p: [0, 1 << 2] },
-                                   Bitboard { p: [0, 1 << 3] },
-                                   Bitboard { p: [0, 1 << 4] },
-                                   Bitboard { p: [0, 1 << 5] },
-                                   Bitboard { p: [0, 1 << 6] },
-                                   Bitboard { p: [0, 1 << 7] },
-                                   Bitboard { p: [0, 1 << 8] },
-                                   Bitboard { p: [0, 1 << 9] },
-                                   Bitboard { p: [0, 1 << 10] },
-                                   Bitboard { p: [0, 1 << 11] },
-                                   Bitboard { p: [0, 1 << 12] },
-                                   Bitboard { p: [0, 1 << 13] },
-                                   Bitboard { p: [0, 1 << 14] },
-                                   Bitboard { p: [0, 1 << 15] },
-                                   Bitboard { p: [0, 1 << 16] },
-                                   Bitboard { p: [0, 1 << 17] }];
+const SQUARE_BB: [Bitboard; 81] = [
+    Bitboard { p: [1 << 0, 0] },
+    Bitboard { p: [1 << 1, 0] },
+    Bitboard { p: [1 << 2, 0] },
+    Bitboard { p: [1 << 3, 0] },
+    Bitboard { p: [1 << 4, 0] },
+    Bitboard { p: [1 << 5, 0] },
+    Bitboard { p: [1 << 6, 0] },
+    Bitboard { p: [1 << 7, 0] },
+    Bitboard { p: [1 << 8, 0] },
+    Bitboard { p: [1 << 9, 0] },
+    Bitboard { p: [1 << 10, 0] },
+    Bitboard { p: [1 << 11, 0] },
+    Bitboard { p: [1 << 12, 0] },
+    Bitboard { p: [1 << 13, 0] },
+    Bitboard { p: [1 << 14, 0] },
+    Bitboard { p: [1 << 15, 0] },
+    Bitboard { p: [1 << 16, 0] },
+    Bitboard { p: [1 << 17, 0] },
+    Bitboard { p: [1 << 18, 0] },
+    Bitboard { p: [1 << 19, 0] },
+    Bitboard { p: [1 << 20, 0] },
+    Bitboard { p: [1 << 21, 0] },
+    Bitboard { p: [1 << 22, 0] },
+    Bitboard { p: [1 << 23, 0] },
+    Bitboard { p: [1 << 24, 0] },
+    Bitboard { p: [1 << 25, 0] },
+    Bitboard { p: [1 << 26, 0] },
+    Bitboard { p: [1 << 27, 0] },
+    Bitboard { p: [1 << 28, 0] },
+    Bitboard { p: [1 << 29, 0] },
+    Bitboard { p: [1 << 30, 0] },
+    Bitboard { p: [1 << 31, 0] },
+    Bitboard { p: [1 << 32, 0] },
+    Bitboard { p: [1 << 33, 0] },
+    Bitboard { p: [1 << 34, 0] },
+    Bitboard { p: [1 << 35, 0] },
+    Bitboard { p: [1 << 36, 0] },
+    Bitboard { p: [1 << 37, 0] },
+    Bitboard { p: [1 << 38, 0] },
+    Bitboard { p: [1 << 39, 0] },
+    Bitboard { p: [1 << 40, 0] },
+    Bitboard { p: [1 << 41, 0] },
+    Bitboard { p: [1 << 42, 0] },
+    Bitboard { p: [1 << 43, 0] },
+    Bitboard { p: [1 << 44, 0] },
+    Bitboard { p: [1 << 45, 0] },
+    Bitboard { p: [1 << 46, 0] },
+    Bitboard { p: [1 << 47, 0] },
+    Bitboard { p: [1 << 48, 0] },
+    Bitboard { p: [1 << 49, 0] },
+    Bitboard { p: [1 << 50, 0] },
+    Bitboard { p: [1 << 51, 0] },
+    Bitboard { p: [1 << 52, 0] },
+    Bitboard { p: [1 << 53, 0] },
+    Bitboard { p: [1 << 54, 0] },
+    Bitboard { p: [1 << 55, 0] },
+    Bitboard { p: [1 << 56, 0] },
+    Bitboard { p: [1 << 57, 0] },
+    Bitboard { p: [1 << 58, 0] },
+    Bitboard { p: [1 << 59, 0] },
+    Bitboard { p: [1 << 60, 0] },
+    Bitboard { p: [1 << 61, 0] },
+    Bitboard { p: [1 << 62, 0] },
+    Bitboard { p: [0, 1 << 0] },
+    Bitboard { p: [0, 1 << 1] },
+    Bitboard { p: [0, 1 << 2] },
+    Bitboard { p: [0, 1 << 3] },
+    Bitboard { p: [0, 1 << 4] },
+    Bitboard { p: [0, 1 << 5] },
+    Bitboard { p: [0, 1 << 6] },
+    Bitboard { p: [0, 1 << 7] },
+    Bitboard { p: [0, 1 << 8] },
+    Bitboard { p: [0, 1 << 9] },
+    Bitboard { p: [0, 1 << 10] },
+    Bitboard { p: [0, 1 << 11] },
+    Bitboard { p: [0, 1 << 12] },
+    Bitboard { p: [0, 1 << 13] },
+    Bitboard { p: [0, 1 << 14] },
+    Bitboard { p: [0, 1 << 15] },
+    Bitboard { p: [0, 1 << 16] },
+    Bitboard { p: [0, 1 << 17] },
+];
 
 #[inline(always)]
 fn square_bb(sq: Square) -> Bitboard {
