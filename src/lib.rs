@@ -28,19 +28,15 @@
 //! // Position can be converted back to the SFEN formatted string.
 //! assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f 7c7d", pos.to_sfen());
 //! ```
-#![recursion_limit="81"]
-
-#[macro_use()]
-extern crate itertools;
-extern crate bitintr;
+#![recursion_limit = "81"]
 
 pub mod bitboard;
 pub mod color;
 pub mod error;
 pub mod hand;
 pub mod moves;
-pub mod piece_type;
 pub mod piece;
+pub mod piece_type;
 pub mod position;
 pub mod square;
 pub mod time;
@@ -48,10 +44,10 @@ pub mod time;
 pub use self::bitboard::Bitboard;
 pub use self::color::Color;
 pub use self::error::{MoveError, SfenError};
-pub use self::square::Square;
-pub use self::piece_type::PieceType;
-pub use self::piece::Piece;
-pub use self::moves::Move;
 pub use self::hand::Hand;
+pub use self::moves::Move;
+pub use self::piece::Piece;
+pub use self::piece_type::PieceType;
 pub use self::position::{MoveRecord, Position};
+pub use self::square::Square;
 pub use self::time::TimeControl;

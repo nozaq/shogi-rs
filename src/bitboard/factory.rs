@@ -2,12 +2,12 @@ use super::*;
 use bitintr::*;
 
 macro_rules! BitboardOr {
-        ($lhs: expr, $rhs: expr) => (
-            Bitboard {
-                p: [$lhs.p[0] | $rhs.p[0], $lhs.p[1] | $rhs.p[1]],
-            }
-        )
-    }
+    ($lhs: expr, $rhs: expr) => {
+        Bitboard {
+            p: [$lhs.p[0] | $rhs.p[0], $lhs.p[1] | $rhs.p[1]],
+        }
+    };
+}
 
 /// Creates various bitboard instances.
 ///
@@ -99,31 +99,71 @@ impl Factory {
 }
 
 const EMPTY_BB: Bitboard = Bitboard { p: [0, 0] };
-const FULL_BB: Bitboard = Bitboard { p: [0x7fffffffffffffff, 0x000000000003ffff] };
+const FULL_BB: Bitboard = Bitboard {
+    p: [0x7fffffffffffffff, 0x000000000003ffff],
+};
 
-const FILE1_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 0), 0] };
-const FILE2_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 1), 0] };
-const FILE3_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 2), 0] };
-const FILE4_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 3), 0] };
-const FILE5_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 4), 0] };
-const FILE6_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 5), 0] };
-const FILE7_BB: Bitboard = Bitboard { p: [0x1FF << (9 * 6), 0] };
-const FILE8_BB: Bitboard = Bitboard { p: [0, 0x1FF << (9 * 0)] };
-const FILE9_BB: Bitboard = Bitboard { p: [0, 0x1FF << (9 * 1)] };
-const FILE_BB: [Bitboard; 9] = [FILE1_BB, FILE2_BB, FILE3_BB, FILE4_BB, FILE5_BB, FILE6_BB,
-                                FILE7_BB, FILE8_BB, FILE9_BB];
+const FILE1_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 0), 0],
+};
+const FILE2_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 1), 0],
+};
+const FILE3_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 2), 0],
+};
+const FILE4_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 3), 0],
+};
+const FILE5_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 4), 0],
+};
+const FILE6_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 5), 0],
+};
+const FILE7_BB: Bitboard = Bitboard {
+    p: [0x1FF << (9 * 6), 0],
+};
+const FILE8_BB: Bitboard = Bitboard {
+    p: [0, 0x1FF << (9 * 0)],
+};
+const FILE9_BB: Bitboard = Bitboard {
+    p: [0, 0x1FF << (9 * 1)],
+};
+const FILE_BB: [Bitboard; 9] = [
+    FILE1_BB, FILE2_BB, FILE3_BB, FILE4_BB, FILE5_BB, FILE6_BB, FILE7_BB, FILE8_BB, FILE9_BB,
+];
 
-const RANK1_BB: Bitboard = Bitboard { p: [0x40201008040201 << 0, 0x201 << 0] };
-const RANK2_BB: Bitboard = Bitboard { p: [0x40201008040201 << 1, 0x201 << 1] };
-const RANK3_BB: Bitboard = Bitboard { p: [0x40201008040201 << 2, 0x201 << 2] };
-const RANK4_BB: Bitboard = Bitboard { p: [0x40201008040201 << 3, 0x201 << 3] };
-const RANK5_BB: Bitboard = Bitboard { p: [0x40201008040201 << 4, 0x201 << 4] };
-const RANK6_BB: Bitboard = Bitboard { p: [0x40201008040201 << 5, 0x201 << 5] };
-const RANK7_BB: Bitboard = Bitboard { p: [0x40201008040201 << 6, 0x201 << 6] };
-const RANK8_BB: Bitboard = Bitboard { p: [0x40201008040201 << 7, 0x201 << 7] };
-const RANK9_BB: Bitboard = Bitboard { p: [0x40201008040201 << 8, 0x201 << 8] };
-const RANK_BB: [Bitboard; 9] = [RANK1_BB, RANK2_BB, RANK3_BB, RANK4_BB, RANK5_BB, RANK6_BB,
-                                RANK7_BB, RANK8_BB, RANK9_BB];
+const RANK1_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 0, 0x201 << 0],
+};
+const RANK2_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 1, 0x201 << 1],
+};
+const RANK3_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 2, 0x201 << 2],
+};
+const RANK4_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 3, 0x201 << 3],
+};
+const RANK5_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 4, 0x201 << 4],
+};
+const RANK6_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 5, 0x201 << 5],
+};
+const RANK7_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 6, 0x201 << 6],
+};
+const RANK8_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 7, 0x201 << 7],
+};
+const RANK9_BB: Bitboard = Bitboard {
+    p: [0x40201008040201 << 8, 0x201 << 8],
+};
+const RANK_BB: [Bitboard; 9] = [
+    RANK1_BB, RANK2_BB, RANK3_BB, RANK4_BB, RANK5_BB, RANK6_BB, RANK7_BB, RANK8_BB, RANK9_BB,
+];
 
 const IN_FRONT_BLACK_RANK1_BB: Bitboard = EMPTY_BB;
 const IN_FRONT_BLACK_RANK2_BB: Bitboard = RANK1_BB;
@@ -145,41 +185,49 @@ const IN_FRONT_WHITE_RANK3_BB: Bitboard = BitboardOr!(IN_FRONT_WHITE_RANK4_BB, R
 const IN_FRONT_WHITE_RANK2_BB: Bitboard = BitboardOr!(IN_FRONT_WHITE_RANK3_BB, RANK3_BB);
 const IN_FRONT_WHITE_RANK1_BB: Bitboard = BitboardOr!(IN_FRONT_WHITE_RANK2_BB, RANK2_BB);
 
-const IN_FRONT_BB: [[Bitboard; 9]; 2] = [[IN_FRONT_BLACK_RANK1_BB,
-                                          IN_FRONT_BLACK_RANK2_BB,
-                                          IN_FRONT_BLACK_RANK3_BB,
-                                          IN_FRONT_BLACK_RANK4_BB,
-                                          IN_FRONT_BLACK_RANK5_BB,
-                                          IN_FRONT_BLACK_RANK6_BB,
-                                          IN_FRONT_BLACK_RANK7_BB,
-                                          IN_FRONT_BLACK_RANK8_BB,
-                                          IN_FRONT_BLACK_RANK9_BB],
-                                         [IN_FRONT_WHITE_RANK1_BB,
-                                          IN_FRONT_WHITE_RANK2_BB,
-                                          IN_FRONT_WHITE_RANK3_BB,
-                                          IN_FRONT_WHITE_RANK4_BB,
-                                          IN_FRONT_WHITE_RANK5_BB,
-                                          IN_FRONT_WHITE_RANK6_BB,
-                                          IN_FRONT_WHITE_RANK7_BB,
-                                          IN_FRONT_WHITE_RANK8_BB,
-                                          IN_FRONT_WHITE_RANK9_BB]];
+const IN_FRONT_BB: [[Bitboard; 9]; 2] = [
+    [
+        IN_FRONT_BLACK_RANK1_BB,
+        IN_FRONT_BLACK_RANK2_BB,
+        IN_FRONT_BLACK_RANK3_BB,
+        IN_FRONT_BLACK_RANK4_BB,
+        IN_FRONT_BLACK_RANK5_BB,
+        IN_FRONT_BLACK_RANK6_BB,
+        IN_FRONT_BLACK_RANK7_BB,
+        IN_FRONT_BLACK_RANK8_BB,
+        IN_FRONT_BLACK_RANK9_BB,
+    ],
+    [
+        IN_FRONT_WHITE_RANK1_BB,
+        IN_FRONT_WHITE_RANK2_BB,
+        IN_FRONT_WHITE_RANK3_BB,
+        IN_FRONT_WHITE_RANK4_BB,
+        IN_FRONT_WHITE_RANK5_BB,
+        IN_FRONT_WHITE_RANK6_BB,
+        IN_FRONT_WHITE_RANK7_BB,
+        IN_FRONT_WHITE_RANK8_BB,
+        IN_FRONT_WHITE_RANK9_BB,
+    ],
+];
 
 static mut ROOK_BLOCK_MASK: [Bitboard; 81] = [Bitboard { p: [0, 0] }; 81];
 static mut ROOK_ATTACK_INDEX: [usize; 81] = [0; 81];
 static mut ROOK_ATTACK_BB: [Bitboard; 495616] = [Bitboard { p: [0, 0] }; 495616];
-const ROOK_BLOCK_BITS: [usize; 81] =
-    [14, 13, 13, 13, 13, 13, 13, 13, 14, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12,
-     12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13,
-     12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12,
-     12, 12, 13, 14, 13, 13, 13, 13, 13, 13, 13, 14];
+const ROOK_BLOCK_BITS: [usize; 81] = [
+    14, 13, 13, 13, 13, 13, 13, 13, 14, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12,
+    12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12,
+    12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13,
+    14, 13, 13, 13, 13, 13, 13, 13, 14,
+];
 
 static mut BISHOP_BLOCK_MASK: [Bitboard; 81] = [Bitboard { p: [0, 0] }; 81];
 static mut BISHOP_ATTACK_INDEX: [usize; 81] = [0; 81];
 static mut BISHOP_ATTACK_BB: [Bitboard; 20224] = [Bitboard { p: [0, 0] }; 20224];
-const BISHOP_BLOCK_BITS: [usize; 81] =
-    [7, 6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 6, 6, 6, 6, 8, 10,
-     10, 10, 8, 6, 6, 6, 6, 8, 10, 12, 10, 8, 6, 6, 6, 6, 8, 10, 10, 10, 8, 6, 6, 6, 6, 8, 8, 8,
-     8, 8, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 6, 6, 6, 6, 7];
+const BISHOP_BLOCK_BITS: [usize; 81] = [
+    7, 6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 8, 8, 8, 8, 8, 6, 6, 6, 6, 8, 10,
+    10, 10, 8, 6, 6, 6, 6, 8, 10, 12, 10, 8, 6, 6, 6, 6, 8, 10, 10, 10, 8, 6, 6, 6, 6, 8, 8, 8, 8,
+    8, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 6, 6, 6, 6, 7,
+];
 
 static mut LANCE_ATTACK_BB: [[[Bitboard; 128]; 81]; 2] = [[[Bitboard { p: [0, 0] }; 128]; 81]; 2];
 static mut ATTACK_BB: [[[Bitboard; 81]; 2]; 14] = [[[Bitboard { p: [0, 0] }; 81]; 2]; 14];
@@ -288,7 +336,7 @@ fn init_rook_attack() {
 
             let bits = ROOK_BLOCK_BITS[sq.index()];
             for i in 0..(1 << bits) {
-                let occupied = index_to_occupied(i, bits, &block_mask);
+                let occupied = index_to_occupied(i, bits, block_mask);
                 let masked_occupied = &occupied & block_mask;
 
                 ROOK_ATTACK_BB[index + occupied_to_index(&masked_occupied, block_mask)] =
@@ -311,7 +359,7 @@ fn init_bishop_attack() {
 
             let bits = BISHOP_BLOCK_BITS[sq.index()];
             for i in 0..(1 << bits) {
-                let occupied = index_to_occupied(i, bits, &block_mask);
+                let occupied = index_to_occupied(i, bits, block_mask);
                 let masked_occupied = &occupied & block_mask;
 
                 BISHOP_ATTACK_BB[index + occupied_to_index(&masked_occupied, block_mask)] =
@@ -344,9 +392,9 @@ fn init_gold_attack() {
 
         for sq in Square::iter() {
             unsafe {
-                let bb = &(&ATTACK_BB[king_index][color_index][sq.index()] &
-                           &IN_FRONT_BB[color_index][sq.rank() as usize]) |
-                         &Factory::rook_attack(sq, &FULL_BB);
+                let bb = &(&ATTACK_BB[king_index][color_index][sq.index()]
+                    & &IN_FRONT_BB[color_index][sq.rank() as usize])
+                    | &Factory::rook_attack(sq, &FULL_BB);
                 ATTACK_BB[index][color_index][sq.index()] = bb;
             }
         }
@@ -362,9 +410,9 @@ fn init_silver_attack() {
 
         for sq in Square::iter() {
             unsafe {
-                let bb = &(&ATTACK_BB[king_index][color_index][sq.index()] &
-                           &IN_FRONT_BB[color_index][sq.rank() as usize]) |
-                         &Factory::bishop_attack(sq, &FULL_BB);
+                let bb = &(&ATTACK_BB[king_index][color_index][sq.index()]
+                    & &IN_FRONT_BB[color_index][sq.rank() as usize])
+                    | &Factory::bishop_attack(sq, &FULL_BB);
                 ATTACK_BB[index][color_index][sq.index()] = bb;
             }
         }
@@ -381,8 +429,8 @@ fn init_pawn_attack() {
         for sq in Square::iter() {
             unsafe {
                 ATTACK_BB[index][color_index][sq.index()] = &ATTACK_BB[silver_index][color_index]
-                                                                 [sq.index()] ^
-                                                            &Factory::bishop_attack(sq, &FULL_BB);
+                    [sq.index()]
+                    ^ &Factory::bishop_attack(sq, &FULL_BB);
             }
         }
     }
@@ -402,8 +450,8 @@ fn init_knight_attack() {
 
                 if pawn_bb.is_any() {
                     let psq = pawn_bb.pop();
-                    bb = &Factory::bishop_attack(psq, &FULL_BB) &
-                         &IN_FRONT_BB[color_index][sq.rank() as usize];
+                    bb = &Factory::bishop_attack(psq, &FULL_BB)
+                        & &IN_FRONT_BB[color_index][sq.rank() as usize];
                 }
                 ATTACK_BB[index][color_index][sq.index()] = bb;
             }
@@ -423,8 +471,8 @@ fn init_lance_attack() {
                 let occupied = index_to_occupied(i, BITS, &block_mask);
                 unsafe {
                     LANCE_ATTACK_BB[color_index][sq.index()][i] =
-                        &Factory::rook_attack(sq, &occupied) &
-                        &IN_FRONT_BB[color_index][sq.rank() as usize];
+                        &Factory::rook_attack(sq, &occupied)
+                            & &IN_FRONT_BB[color_index][sq.rank() as usize];
                 }
             }
         }
@@ -443,12 +491,12 @@ fn init_between() {
             unsafe {
                 if df == 0 || dr == 0 {
                     BETWEEN_BB[from.index()][to.index()] =
-                        &Factory::rook_attack(from, &square_bb(to)) &
-                        &Factory::rook_attack(to, &square_bb(from));
+                        &Factory::rook_attack(from, &square_bb(to))
+                            & &Factory::rook_attack(to, &square_bb(from));
                 } else if df.abs() == dr.abs() {
                     BETWEEN_BB[from.index()][to.index()] =
-                        &Factory::bishop_attack(from, &square_bb(to)) &
-                        &Factory::bishop_attack(to, &square_bb(from));
+                        &Factory::bishop_attack(from, &square_bb(to))
+                            & &Factory::bishop_attack(to, &square_bb(from));
                 }
             }
         }

@@ -92,8 +92,13 @@ impl PieceType {
     /// Checks if this piece type can be a part of hand pieces.
     pub fn is_hand_piece(&self) -> bool {
         match *self {
-            PieceType::Rook | PieceType::Bishop | PieceType::Gold | PieceType::Silver |
-            PieceType::Knight | PieceType::Lance | PieceType::Pawn => true,
+            PieceType::Rook
+            | PieceType::Bishop
+            | PieceType::Gold
+            | PieceType::Silver
+            | PieceType::Knight
+            | PieceType::Lance
+            | PieceType::Pawn => true,
             _ => false,
         }
     }
@@ -107,24 +112,26 @@ impl PieceType {
 
 impl fmt::Display for PieceType {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f,
-               "{}",
-               match *self {
-                   PieceType::Bishop => "b",
-                   PieceType::Gold => "g",
-                   PieceType::King => "k",
-                   PieceType::Lance => "l",
-                   PieceType::Knight => "n",
-                   PieceType::Pawn => "p",
-                   PieceType::Rook => "r",
-                   PieceType::Silver => "s",
-                   PieceType::ProBishop => "+b",
-                   PieceType::ProLance => "+l",
-                   PieceType::ProKnight => "+n",
-                   PieceType::ProPawn => "+p",
-                   PieceType::ProRook => "+r",
-                   PieceType::ProSilver => "+s",
-               })
+        write!(
+            f,
+            "{}",
+            match *self {
+                PieceType::Bishop => "b",
+                PieceType::Gold => "g",
+                PieceType::King => "k",
+                PieceType::Lance => "l",
+                PieceType::Knight => "n",
+                PieceType::Pawn => "p",
+                PieceType::Rook => "r",
+                PieceType::Silver => "s",
+                PieceType::ProBishop => "+b",
+                PieceType::ProLance => "+l",
+                PieceType::ProKnight => "+n",
+                PieceType::ProPawn => "+p",
+                PieceType::ProRook => "+r",
+                PieceType::ProSilver => "+s",
+            }
+        )
     }
 }
 
@@ -138,7 +145,9 @@ pub struct PieceTypeIter {
 
 impl PieceTypeIter {
     fn new() -> PieceTypeIter {
-        PieceTypeIter { current: Some(PieceType::King) }
+        PieceTypeIter {
+            current: Some(PieceType::King),
+        }
     }
 }
 
@@ -177,20 +186,24 @@ mod tests {
 
     #[test]
     fn from_sfen() {
-        let ok_cases = [('k', PieceType::King),
-                        ('r', PieceType::Rook),
-                        ('b', PieceType::Bishop),
-                        ('g', PieceType::Gold),
-                        ('s', PieceType::Silver),
-                        ('n', PieceType::Knight),
-                        ('l', PieceType::Lance),
-                        ('p', PieceType::Pawn)];
+        let ok_cases = [
+            ('k', PieceType::King),
+            ('r', PieceType::Rook),
+            ('b', PieceType::Bishop),
+            ('g', PieceType::Gold),
+            ('s', PieceType::Silver),
+            ('n', PieceType::Knight),
+            ('l', PieceType::Lance),
+            ('p', PieceType::Pawn),
+        ];
         let ng_cases = ['\0', ' ', '_', 'a', 'z', '+'];
 
         for case in ok_cases.iter() {
             assert_eq!(Some(case.1), PieceType::from_sfen(case.0));
-            assert_eq!(Some(case.1),
-                       PieceType::from_sfen(case.0.to_uppercase().nth(0).unwrap()));
+            assert_eq!(
+                Some(case.1),
+                PieceType::from_sfen(case.0.to_uppercase().nth(0).unwrap())
+            );
         }
 
         for case in ng_cases.iter() {
@@ -200,20 +213,22 @@ mod tests {
 
     #[test]
     fn to_sfen() {
-        let ok_cases = [("k", PieceType::King),
-                        ("r", PieceType::Rook),
-                        ("b", PieceType::Bishop),
-                        ("g", PieceType::Gold),
-                        ("s", PieceType::Silver),
-                        ("n", PieceType::Knight),
-                        ("l", PieceType::Lance),
-                        ("p", PieceType::Pawn),
-                        ("+r", PieceType::ProRook),
-                        ("+b", PieceType::ProBishop),
-                        ("+s", PieceType::ProSilver),
-                        ("+n", PieceType::ProKnight),
-                        ("+l", PieceType::ProLance),
-                        ("+p", PieceType::ProPawn)];
+        let ok_cases = [
+            ("k", PieceType::King),
+            ("r", PieceType::Rook),
+            ("b", PieceType::Bishop),
+            ("g", PieceType::Gold),
+            ("s", PieceType::Silver),
+            ("n", PieceType::Knight),
+            ("l", PieceType::Lance),
+            ("p", PieceType::Pawn),
+            ("+r", PieceType::ProRook),
+            ("+b", PieceType::ProBishop),
+            ("+s", PieceType::ProSilver),
+            ("+n", PieceType::ProKnight),
+            ("+l", PieceType::ProLance),
+            ("+p", PieceType::ProPawn),
+        ];
 
         for case in ok_cases.iter() {
             assert_eq!(case.0, case.1.to_string());
@@ -222,20 +237,24 @@ mod tests {
 
     #[test]
     fn promote() {
-        let ok_cases = [(PieceType::Rook, PieceType::ProRook),
-                        (PieceType::Bishop, PieceType::ProBishop),
-                        (PieceType::Silver, PieceType::ProSilver),
-                        (PieceType::Knight, PieceType::ProKnight),
-                        (PieceType::Lance, PieceType::ProLance),
-                        (PieceType::Pawn, PieceType::ProPawn)];
-        let ng_cases = [PieceType::King,
-                        PieceType::Gold,
-                        PieceType::ProRook,
-                        PieceType::ProBishop,
-                        PieceType::ProSilver,
-                        PieceType::ProKnight,
-                        PieceType::ProLance,
-                        PieceType::ProPawn];
+        let ok_cases = [
+            (PieceType::Rook, PieceType::ProRook),
+            (PieceType::Bishop, PieceType::ProBishop),
+            (PieceType::Silver, PieceType::ProSilver),
+            (PieceType::Knight, PieceType::ProKnight),
+            (PieceType::Lance, PieceType::ProLance),
+            (PieceType::Pawn, PieceType::ProPawn),
+        ];
+        let ng_cases = [
+            PieceType::King,
+            PieceType::Gold,
+            PieceType::ProRook,
+            PieceType::ProBishop,
+            PieceType::ProSilver,
+            PieceType::ProKnight,
+            PieceType::ProLance,
+            PieceType::ProPawn,
+        ];
 
         for case in ok_cases.iter() {
             assert_eq!(Some(case.1), case.0.promote());
@@ -248,20 +267,24 @@ mod tests {
 
     #[test]
     fn unpromote() {
-        let ok_cases = [(PieceType::ProRook, PieceType::Rook),
-                        (PieceType::ProBishop, PieceType::Bishop),
-                        (PieceType::ProSilver, PieceType::Silver),
-                        (PieceType::ProKnight, PieceType::Knight),
-                        (PieceType::ProLance, PieceType::Lance),
-                        (PieceType::ProPawn, PieceType::Pawn)];
-        let ng_cases = [PieceType::King,
-                        PieceType::Rook,
-                        PieceType::Bishop,
-                        PieceType::Gold,
-                        PieceType::Silver,
-                        PieceType::Knight,
-                        PieceType::Lance,
-                        PieceType::Pawn];
+        let ok_cases = [
+            (PieceType::ProRook, PieceType::Rook),
+            (PieceType::ProBishop, PieceType::Bishop),
+            (PieceType::ProSilver, PieceType::Silver),
+            (PieceType::ProKnight, PieceType::Knight),
+            (PieceType::ProLance, PieceType::Lance),
+            (PieceType::ProPawn, PieceType::Pawn),
+        ];
+        let ng_cases = [
+            PieceType::King,
+            PieceType::Rook,
+            PieceType::Bishop,
+            PieceType::Gold,
+            PieceType::Silver,
+            PieceType::Knight,
+            PieceType::Lance,
+            PieceType::Pawn,
+        ];
 
         for case in ok_cases.iter() {
             assert_eq!(Some(case.1), case.0.unpromote());

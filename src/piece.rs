@@ -1,5 +1,5 @@
+use crate::{Color, PieceType, Square};
 use std::fmt;
-use {Color, PieceType, Square};
 
 /// Represents a piece on the game board.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -17,11 +17,9 @@ impl Piece {
             Color::White
         };
 
-        PieceType::from_sfen(c).map(|pt| {
-            Piece {
-                piece_type: pt,
-                color: color,
-            }
+        PieceType::from_sfen(c).map(|pt| Piece {
+            piece_type: pt,
+            color: color,
         })
     }
 
@@ -39,11 +37,9 @@ impl Piece {
     /// assert_eq!(None, pc2.promote());
     /// ```
     pub fn promote(&self) -> Option<Piece> {
-        self.piece_type.promote().map(|pt| {
-            Piece {
-                piece_type: pt,
-                color: self.color,
-            }
+        self.piece_type.promote().map(|pt| Piece {
+            piece_type: pt,
+            color: self.color,
         })
     }
 
@@ -61,11 +57,9 @@ impl Piece {
     /// assert_eq!(None, pc1.unpromote());
     /// ```
     pub fn unpromote(&self) -> Option<Piece> {
-        self.piece_type.unpromote().map(|pt| {
-            Piece {
-                piece_type: pt,
-                color: self.color,
-            }
+        self.piece_type.unpromote().map(|pt| Piece {
+            piece_type: pt,
+            color: self.color,
         })
     }
 
@@ -112,26 +106,28 @@ impl fmt::Display for Piece {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use square::consts::*;
+    use crate::square::consts::*;
 
     #[test]
     fn from_sfen() {
-        let ok_cases = [('k', PieceType::King, Color::White),
-                        ('r', PieceType::Rook, Color::White),
-                        ('b', PieceType::Bishop, Color::White),
-                        ('g', PieceType::Gold, Color::White),
-                        ('s', PieceType::Silver, Color::White),
-                        ('n', PieceType::Knight, Color::White),
-                        ('l', PieceType::Lance, Color::White),
-                        ('p', PieceType::Pawn, Color::White),
-                        ('K', PieceType::King, Color::Black),
-                        ('R', PieceType::Rook, Color::Black),
-                        ('B', PieceType::Bishop, Color::Black),
-                        ('G', PieceType::Gold, Color::Black),
-                        ('S', PieceType::Silver, Color::Black),
-                        ('N', PieceType::Knight, Color::Black),
-                        ('L', PieceType::Lance, Color::Black),
-                        ('P', PieceType::Pawn, Color::Black)];
+        let ok_cases = [
+            ('k', PieceType::King, Color::White),
+            ('r', PieceType::Rook, Color::White),
+            ('b', PieceType::Bishop, Color::White),
+            ('g', PieceType::Gold, Color::White),
+            ('s', PieceType::Silver, Color::White),
+            ('n', PieceType::Knight, Color::White),
+            ('l', PieceType::Lance, Color::White),
+            ('p', PieceType::Pawn, Color::White),
+            ('K', PieceType::King, Color::Black),
+            ('R', PieceType::Rook, Color::Black),
+            ('B', PieceType::Bishop, Color::Black),
+            ('G', PieceType::Gold, Color::Black),
+            ('S', PieceType::Silver, Color::Black),
+            ('N', PieceType::Knight, Color::Black),
+            ('L', PieceType::Lance, Color::Black),
+            ('P', PieceType::Pawn, Color::Black),
+        ];
         let ng_cases = ['\0', ' ', '_', 'a', 'z', '+', 'A', 'Z'];
 
         for case in ok_cases.iter() {
@@ -148,20 +144,22 @@ mod tests {
 
     #[test]
     fn to_sfen() {
-        let ok_cases = [("k", PieceType::King),
-                        ("r", PieceType::Rook),
-                        ("b", PieceType::Bishop),
-                        ("g", PieceType::Gold),
-                        ("s", PieceType::Silver),
-                        ("n", PieceType::Knight),
-                        ("l", PieceType::Lance),
-                        ("p", PieceType::Pawn),
-                        ("+r", PieceType::ProRook),
-                        ("+b", PieceType::ProBishop),
-                        ("+s", PieceType::ProSilver),
-                        ("+n", PieceType::ProKnight),
-                        ("+l", PieceType::ProLance),
-                        ("+p", PieceType::ProPawn)];
+        let ok_cases = [
+            ("k", PieceType::King),
+            ("r", PieceType::Rook),
+            ("b", PieceType::Bishop),
+            ("g", PieceType::Gold),
+            ("s", PieceType::Silver),
+            ("n", PieceType::Knight),
+            ("l", PieceType::Lance),
+            ("p", PieceType::Pawn),
+            ("+r", PieceType::ProRook),
+            ("+b", PieceType::ProBishop),
+            ("+s", PieceType::ProSilver),
+            ("+n", PieceType::ProKnight),
+            ("+l", PieceType::ProLance),
+            ("+p", PieceType::ProPawn),
+        ];
 
         for case in ok_cases.iter() {
             let bpc = Piece {
@@ -179,45 +177,53 @@ mod tests {
 
     #[test]
     fn promote() {
-        let ok_cases = [(PieceType::Rook, PieceType::ProRook),
-                        (PieceType::Bishop, PieceType::ProBishop),
-                        (PieceType::Silver, PieceType::ProSilver),
-                        (PieceType::Knight, PieceType::ProKnight),
-                        (PieceType::Lance, PieceType::ProLance),
-                        (PieceType::Pawn, PieceType::ProPawn)];
-        let ng_cases = [PieceType::King,
-                        PieceType::Gold,
-                        PieceType::ProRook,
-                        PieceType::ProBishop,
-                        PieceType::ProSilver,
-                        PieceType::ProKnight,
-                        PieceType::ProLance,
-                        PieceType::ProPawn];
+        let ok_cases = [
+            (PieceType::Rook, PieceType::ProRook),
+            (PieceType::Bishop, PieceType::ProBishop),
+            (PieceType::Silver, PieceType::ProSilver),
+            (PieceType::Knight, PieceType::ProKnight),
+            (PieceType::Lance, PieceType::ProLance),
+            (PieceType::Pawn, PieceType::ProPawn),
+        ];
+        let ng_cases = [
+            PieceType::King,
+            PieceType::Gold,
+            PieceType::ProRook,
+            PieceType::ProBishop,
+            PieceType::ProSilver,
+            PieceType::ProKnight,
+            PieceType::ProLance,
+            PieceType::ProPawn,
+        ];
 
         for case in ok_cases.iter() {
             let bpc = Piece {
-                    piece_type: case.0,
-                    color: Color::Black,
-                }
-                .promote()
-                .unwrap();
+                piece_type: case.0,
+                color: Color::Black,
+            }
+            .promote()
+            .unwrap();
             let wpc = Piece {
-                    piece_type: case.0,
-                    color: Color::White,
-                }
-                .promote()
-                .unwrap();
+                piece_type: case.0,
+                color: Color::White,
+            }
+            .promote()
+            .unwrap();
 
-            assert_eq!(Piece {
-                           piece_type: case.1,
-                           color: Color::Black,
-                       },
-                       bpc);
-            assert_eq!(Piece {
-                           piece_type: case.1,
-                           color: Color::White,
-                       },
-                       wpc);
+            assert_eq!(
+                Piece {
+                    piece_type: case.1,
+                    color: Color::Black,
+                },
+                bpc
+            );
+            assert_eq!(
+                Piece {
+                    piece_type: case.1,
+                    color: Color::White,
+                },
+                wpc
+            );
         }
 
         for case in ng_cases.iter() {
@@ -227,45 +233,53 @@ mod tests {
 
     #[test]
     fn unpromote() {
-        let ok_cases = [(PieceType::ProRook, PieceType::Rook),
-                        (PieceType::ProBishop, PieceType::Bishop),
-                        (PieceType::ProSilver, PieceType::Silver),
-                        (PieceType::ProKnight, PieceType::Knight),
-                        (PieceType::ProLance, PieceType::Lance),
-                        (PieceType::ProPawn, PieceType::Pawn)];
-        let ng_cases = [PieceType::King,
-                        PieceType::Rook,
-                        PieceType::Bishop,
-                        PieceType::Gold,
-                        PieceType::Silver,
-                        PieceType::Knight,
-                        PieceType::Lance,
-                        PieceType::Pawn];
+        let ok_cases = [
+            (PieceType::ProRook, PieceType::Rook),
+            (PieceType::ProBishop, PieceType::Bishop),
+            (PieceType::ProSilver, PieceType::Silver),
+            (PieceType::ProKnight, PieceType::Knight),
+            (PieceType::ProLance, PieceType::Lance),
+            (PieceType::ProPawn, PieceType::Pawn),
+        ];
+        let ng_cases = [
+            PieceType::King,
+            PieceType::Rook,
+            PieceType::Bishop,
+            PieceType::Gold,
+            PieceType::Silver,
+            PieceType::Knight,
+            PieceType::Lance,
+            PieceType::Pawn,
+        ];
 
         for case in ok_cases.iter() {
             let bpc = Piece {
-                    piece_type: case.0,
-                    color: Color::Black,
-                }
-                .unpromote()
-                .unwrap();
+                piece_type: case.0,
+                color: Color::Black,
+            }
+            .unpromote()
+            .unwrap();
             let wpc = Piece {
-                    piece_type: case.0,
-                    color: Color::White,
-                }
-                .unpromote()
-                .unwrap();
+                piece_type: case.0,
+                color: Color::White,
+            }
+            .unpromote()
+            .unwrap();
 
-            assert_eq!(Piece {
-                           piece_type: case.1,
-                           color: Color::Black,
-                       },
-                       bpc);
-            assert_eq!(Piece {
-                           piece_type: case.1,
-                           color: Color::White,
-                       },
-                       wpc);
+            assert_eq!(
+                Piece {
+                    piece_type: case.1,
+                    color: Color::Black,
+                },
+                bpc
+            );
+            assert_eq!(
+                Piece {
+                    piece_type: case.1,
+                    color: Color::White,
+                },
+                wpc
+            );
         }
 
         for case in ng_cases.iter() {
@@ -290,20 +304,22 @@ mod tests {
 
     #[test]
     fn is_placeable_at() {
-        let cases = [(SQ_1A, PieceType::Pawn, false, true),
-                     (SQ_1B, PieceType::Pawn, true, true),
-                     (SQ_1H, PieceType::Pawn, true, true),
-                     (SQ_1I, PieceType::Pawn, true, false),
-                     (SQ_1A, PieceType::Lance, false, true),
-                     (SQ_1B, PieceType::Lance, true, true),
-                     (SQ_1H, PieceType::Lance, true, true),
-                     (SQ_1I, PieceType::Lance, true, false),
-                     (SQ_1A, PieceType::Knight, false, true),
-                     (SQ_1B, PieceType::Knight, false, true),
-                     (SQ_1C, PieceType::Knight, true, true),
-                     (SQ_1G, PieceType::Knight, true, true),
-                     (SQ_1H, PieceType::Knight, true, false),
-                     (SQ_1I, PieceType::Knight, true, false)];
+        let cases = [
+            (SQ_1A, PieceType::Pawn, false, true),
+            (SQ_1B, PieceType::Pawn, true, true),
+            (SQ_1H, PieceType::Pawn, true, true),
+            (SQ_1I, PieceType::Pawn, true, false),
+            (SQ_1A, PieceType::Lance, false, true),
+            (SQ_1B, PieceType::Lance, true, true),
+            (SQ_1H, PieceType::Lance, true, true),
+            (SQ_1I, PieceType::Lance, true, false),
+            (SQ_1A, PieceType::Knight, false, true),
+            (SQ_1B, PieceType::Knight, false, true),
+            (SQ_1C, PieceType::Knight, true, true),
+            (SQ_1G, PieceType::Knight, true, true),
+            (SQ_1H, PieceType::Knight, true, false),
+            (SQ_1I, PieceType::Knight, true, false),
+        ];
 
         for case in cases.iter() {
             let sq = case.0;
