@@ -1,4 +1,5 @@
 use super::*;
+use bitintr::*;
 
 macro_rules! BitboardOr {
         ($lhs: expr, $rhs: expr) => (
@@ -201,7 +202,7 @@ fn index_to_occupied(index: usize, bits: usize, mask: &Bitboard) -> Bitboard {
 
 #[inline(always)]
 fn occupied_to_index(occupied: &Bitboard, mask: &Bitboard) -> usize {
-    pext(occupied.merge(), mask.merge()) as usize
+    occupied.merge().pext(mask.merge()) as usize
 }
 
 #[inline(always)]
