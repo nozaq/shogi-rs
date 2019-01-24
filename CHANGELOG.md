@@ -1,51 +1,65 @@
-<a name="0.7.0"></a>
-## 0.7.0 (2017-05-13)
+<a name="unreleased"></a>
+## [Unreleased]
 
-* Extract usi module intoa an external crate. Please check [usi-rs](https://github.com/nozaq/usi-rs).
+### Feat
+- add Position#player_bb()
+
+### Fix
+- add Cargo.toml
+- Coveralls integration
+
+### Refactor
+- migrate to 2018 edition
+- upgrade itertools to v0.8.0
+- upgrade bitintr to v0.2
+
+
+<a name="0.7.0"></a>
+## [0.7.0] - 2017-05-14
+### Refactor
+- extract 'usi' module as an external crate
 
 
 <a name="0.6.0"></a>
-## 0.6.0 (2017-03-05)
-
-
-#### Features
-
-*  Bitboard-based move generation (#9) ([0a5a36d3](0a5a36d3))
-
-
-
+## [0.6.0] - 2017-03-05
 
 <a name="0.5.0"></a>
-## 0.5.0 (2017-02-25)
+## [0.5.0] - 2017-02-25
+### Feat
+- ensure Square not to return invalid values ([#7](https://github.com/nozaq/shogi-rs/issues/7))
 
-
-#### Bug Fixes
-
-*   check pinning status in Uchifuzume detection (#8) ([bf72dae7](bf72dae7))
-
-#### Features
-
-*   ensure Square not to return invalid values (#7) ([605cbe03](605cbe03))
-
+### Fix
+- check pinning status in Uchifuzume detection ([#8](https://github.com/nozaq/shogi-rs/issues/8))
 
 
 <a name="0.4.0"></a>
-## 0.4.0 (2017-02-22)
-
-
-#### Features
-
-*   add Nyugyoku check (#6) ([69e8e9bb](69e8e9bb))
-
+## [0.4.0] - 2017-02-22
+### Feat
+- add Nyugyoku check ([#6](https://github.com/nozaq/shogi-rs/issues/6))
 
 
 <a name="0.3.0"></a>
-## 0.3.0 (2017-02-19)
+## [0.3.0] - 2017-02-19
+### Feat
+- add a helper type to manage time controls ([#5](https://github.com/nozaq/shogi-rs/issues/5))
+
+### Refactor
+- remove an unused variable
 
 
-#### Features
+<a name="0.2.0"></a>
+## [0.2.0] - 2017-02-19
+### Feat
+- USI protocol helpers ([#4](https://github.com/nozaq/shogi-rs/issues/4))
 
-*   add a helper type to manage time controls (#5) ([622efd2d](622efd2d))
 
+<a name="0.1.0"></a>
+## 0.1.0 - 2017-02-18
 
-
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/nozaq/shogi-rs/compare/0.6.0...0.7.0
+[0.6.0]: https://github.com/nozaq/shogi-rs/compare/0.5.0...0.6.0
+[0.5.0]: https://github.com/nozaq/shogi-rs/compare/0.4.0...0.5.0
+[0.4.0]: https://github.com/nozaq/shogi-rs/compare/0.3.0...0.4.0
+[0.3.0]: https://github.com/nozaq/shogi-rs/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/nozaq/shogi-rs/compare/0.1.0...0.2.0
