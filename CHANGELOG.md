@@ -1,6 +1,9 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="0.8.0"></a>
+## [0.8.0] - 2019-01-24
 ### Feat
 - add Position#player_bb()
 
@@ -56,7 +59,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/nozaq/shogi-rs/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/nozaq/shogi-rs/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/nozaq/shogi-rs/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/nozaq/shogi-rs/compare/0.4.0...0.5.0
