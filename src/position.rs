@@ -73,10 +73,10 @@ impl PieceGrid {
 
 impl fmt::Debug for PieceGrid {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        r#try!(write!(fmt, "PieceGrid {{ "));
+        write!(fmt, "PieceGrid {{ ")?;
 
         for pc in self.0.iter() {
-            r#try!(write!(fmt, "{:?} ", pc));
+            write!(fmt, "{:?} ", pc)?;
         }
         write!(fmt, "}}")
     }
@@ -299,8 +299,8 @@ impl Position {
     /// Makes the given move. Returns `Err` if the move is invalid or any special condition is met.
     pub fn make_move(&mut self, m: &Move) -> Result<(), MoveError> {
         let res = match *m {
-            Move::Normal { from, to, promote } => r#try!(self.make_normal_move(from, to, promote)),
-            Move::Drop { to, ref piece_type } => r#try!(self.make_drop_move(to, piece_type)),
+            Move::Normal { from, to, promote } => self.make_normal_move(from, to, promote)?,
+            Move::Drop { to, ref piece_type } => self.make_drop_move(to, piece_type)?,
         };
 
         self.move_history.push(res);
@@ -316,7 +316,7 @@ impl Position {
         let stm = self.side_to_move();
         let opponent = stm.flip();
 
-        let moved = r#try!(self.piece_at(from).ok_or(MoveError::Inconsistent));
+        let moved = self.piece_at(from).ok_or(MoveError::Inconsistent)?;
 
         let captured = *self.piece_at(to);
 
@@ -396,7 +396,7 @@ impl Position {
         self.ply += 1;
 
         self.log_position();
-        r#try!(self.detect_repetition());
+        self.detect_repetition()?;
 
         Ok(MoveRecord::Normal {
             from: from,
@@ -495,7 +495,7 @@ impl Position {
         self.ply += 1;
 
         self.log_position();
-        r#try!(self.detect_repetition());
+        self.detect_repetition()?;
 
         Ok(MoveRecord::Drop { to: to, piece: pc })
     }
@@ -674,22 +674,22 @@ impl Position {
         let mut parts = sfen_str.split_whitespace();
 
         // Build the initial position, all parts are required.
-        r#try!(parts
+        parts
             .next()
             .ok_or(SfenError {})
-            .and_then(|s| self.parse_sfen_board(s)));
-        r#try!(parts
+            .and_then(|s| self.parse_sfen_board(s))?;
+        parts
             .next()
             .ok_or(SfenError {})
-            .and_then(|s| self.parse_sfen_stm(s)));
-        r#try!(parts
+            .and_then(|s| self.parse_sfen_stm(s))?;
+        parts
             .next()
             .ok_or(SfenError {})
-            .and_then(|s| self.parse_sfen_hand(s)));
-        r#try!(parts
+            .and_then(|s| self.parse_sfen_hand(s))?;
+        parts
             .next()
             .ok_or(SfenError {})
-            .and_then(|s| self.parse_sfen_ply(s)));
+            .and_then(|s| self.parse_sfen_ply(s))?;
 
         self.sfen_history.clear();
         self.log_position();
@@ -840,7 +840,7 @@ impl Position {
     }
 
     fn parse_sfen_ply(&mut self, s: &str) -> Result<(), SfenError> {
-        self.ply = r#try!(s.parse());
+        self.ply = s.parse()?;
         Ok(())
     }
 
@@ -931,28 +931,24 @@ impl Default for Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
-        r#try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+        writeln!(f, "   9   8   7   6   5   4   3   2   1")?;
+        writeln!(f, "+---+---+---+---+---+---+---+---+---+")?;
 
         for row in 0..9 {
-            r#try!(write!(f, "|"));
+            write!(f, "|")?;
             for file in (0..9).rev() {
                 if let Some(ref piece) = *self.piece_at(Square::new(file, row).unwrap()) {
-                    r#try!(write!(f, "{:>3}|", piece.to_string()));
+                    write!(f, "{:>3}|", piece.to_string())?;
                 } else {
-                    r#try!(write!(f, "   |"));
+                    write!(f, "   |")?;
                 }
             }
 
-            r#try!(writeln!(
-                f,
-                " {}",
-                (('a' as usize + row as usize) as u8) as char
-            ));
-            r#try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+            writeln!(f, " {}", (('a' as usize + row as usize) as u8) as char)?;
+            writeln!(f, "+---+---+---+---+---+---+---+---+---+")?;
         }
 
-        r#try!(writeln!(
+        writeln!(
             f,
             "Side to move: {}",
             if self.side_to_move == Color::Black {
@@ -960,7 +956,7 @@ impl fmt::Display for Position {
             } else {
                 "White"
             }
-        ));
+        )?;
 
         let fmt_hand = |color: Color, f: &mut fmt::Formatter| -> fmt::Result {
             for pt in PieceType::iter().filter(|pt| pt.is_hand_piece()) {
@@ -971,20 +967,20 @@ impl fmt::Display for Position {
                 let n = self.hand.get(&pc);
 
                 if n > 0 {
-                    r#try!(write!(f, "{}{} ", pc, n));
+                    write!(f, "{}{} ", pc, n)?;
                 }
             }
             Ok(())
         };
-        r#try!(write!(f, "Hand (Black): "));
-        r#try!(fmt_hand(Color::Black, f));
-        r#try!(writeln!(f, ""));
+        write!(f, "Hand (Black): ")?;
+        fmt_hand(Color::Black, f)?;
+        writeln!(f, "")?;
 
-        r#try!(write!(f, "Hand (White): "));
-        r#try!(fmt_hand(Color::White, f));
-        r#try!(writeln!(f, ""));
+        write!(f, "Hand (White): ")?;
+        fmt_hand(Color::White, f)?;
+        writeln!(f, "")?;
 
-        r#try!(write!(f, "Ply: {}", self.ply));
+        write!(f, "Ply: {}", self.ply)?;
 
         Ok(())
     }

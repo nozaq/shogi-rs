@@ -210,21 +210,17 @@ impl<'a> ops::BitXorAssign<Square> for Bitboard {
 
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        r#try!(writeln!(f, "   9   8   7   6   5   4   3   2   1"));
-        r#try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+        writeln!(f, "   9   8   7   6   5   4   3   2   1")?;
+        writeln!(f, "+---+---+---+---+---+---+---+---+---+")?;
 
         for rank in 0..9 {
-            r#try!(write!(f, "|"));
+            write!(f, "|")?;
             for file in (0..9).rev() {
                 let sq = Square::new(file, rank).unwrap();
-                r#try!(write!(
-                    f,
-                    " {} |",
-                    if (self & sq).is_empty() { " " } else { "X" }
-                ));
+                write!(f, " {} |", if (self & sq).is_empty() { " " } else { "X" })?;
             }
-            r#try!(writeln!(f, " {}", ('a' as u8 + rank) as char));
-            r#try!(writeln!(f, "+---+---+---+---+---+---+---+---+---+"));
+            writeln!(f, " {}", ('a' as u8 + rank) as char)?;
+            writeln!(f, "+---+---+---+---+---+---+---+---+---+")?;
         }
 
         Ok(())
