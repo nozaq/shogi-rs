@@ -17,10 +17,7 @@ impl Piece {
             Color::White
         };
 
-        PieceType::from_sfen(c).map(|pt| Piece {
-            piece_type: pt,
-            color: color,
-        })
+        PieceType::from_sfen(c).map(|piece_type| Piece { piece_type, color })
     }
 
     /// Returns an instance of `Piece` after promotion.
@@ -36,7 +33,7 @@ impl Piece {
     /// assert_eq!(Some(pc2), pc1.promote());
     /// assert_eq!(None, pc2.promote());
     /// ```
-    pub fn promote(&self) -> Option<Piece> {
+    pub fn promote(self) -> Option<Piece> {
         self.piece_type.promote().map(|pt| Piece {
             piece_type: pt,
             color: self.color,
@@ -56,7 +53,7 @@ impl Piece {
     /// assert_eq!(Some(pc1), pc2.unpromote());
     /// assert_eq!(None, pc1.unpromote());
     /// ```
-    pub fn unpromote(&self) -> Option<Piece> {
+    pub fn unpromote(self) -> Option<Piece> {
         self.piece_type.unpromote().map(|pt| Piece {
             piece_type: pt,
             color: self.color,
@@ -76,7 +73,7 @@ impl Piece {
     /// assert_eq!(pc2, pc1.flip());
     /// assert_eq!(pc1, pc2.flip());
     /// ```
-    pub fn flip(&self) -> Piece {
+    pub fn flip(self) -> Piece {
         Piece {
             piece_type: self.piece_type,
             color: self.color.flip(),
@@ -84,7 +81,7 @@ impl Piece {
     }
 
     /// Tests if it is legal to place this piece at the given square.
-    pub fn is_placeable_at(&self, sq: Square) -> bool {
+    pub fn is_placeable_at(self, sq: Square) -> bool {
         match self.piece_type {
             PieceType::Pawn | PieceType::Lance => sq.relative_rank(self.color) > 0,
             PieceType::Knight => sq.relative_rank(self.color) > 1,

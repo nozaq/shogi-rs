@@ -28,22 +28,15 @@ impl Move {
                 if let Some(to) = Square::from_sfen(&s[2..4]) {
                     let promote = s.len() == 5;
 
-                    return Some(Move::Normal {
-                        from: from,
-                        to: to,
-                        promote: promote,
-                    });
+                    return Some(Move::Normal { from, to, promote });
                 }
             }
 
             return None;
         } else if first.is_uppercase() && s.chars().nth(1).unwrap() == '*' {
-            if let Some(pt) = first.to_lowercase().nth(0).and_then(PieceType::from_sfen) {
+            if let Some(piece_type) = first.to_lowercase().nth(0).and_then(PieceType::from_sfen) {
                 if let Some(to) = Square::from_sfen(&s[2..4]) {
-                    return Some(Move::Drop {
-                        to: to,
-                        piece_type: pt,
-                    });
+                    return Some(Move::Drop { to, piece_type });
                 }
             }
 

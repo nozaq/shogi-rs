@@ -219,7 +219,7 @@ impl fmt::Display for Bitboard {
                 let sq = Square::new(file, rank).unwrap();
                 write!(f, " {} |", if (self & sq).is_empty() { " " } else { "X" })?;
             }
-            writeln!(f, " {}", ('a' as u8 + rank) as char)?;
+            writeln!(f, " {}", (b'a' + rank) as char)?;
             writeln!(f, "+---+---+---+---+---+---+---+---+---+")?;
         }
 
@@ -245,7 +245,7 @@ impl iter::Iterator for Bitboard {
 /////////////////////////////////////////////////////////////////////////////
 
 const SQUARE_BB: [Bitboard; 81] = [
-    Bitboard { p: [1 << 0, 0] },
+    Bitboard { p: [1, 0] },
     Bitboard { p: [1 << 1, 0] },
     Bitboard { p: [1 << 2, 0] },
     Bitboard { p: [1 << 3, 0] },
@@ -308,7 +308,7 @@ const SQUARE_BB: [Bitboard; 81] = [
     Bitboard { p: [1 << 60, 0] },
     Bitboard { p: [1 << 61, 0] },
     Bitboard { p: [1 << 62, 0] },
-    Bitboard { p: [0, 1 << 0] },
+    Bitboard { p: [0, 1] },
     Bitboard { p: [0, 1 << 1] },
     Bitboard { p: [0, 1 << 2] },
     Bitboard { p: [0, 1 << 3] },
