@@ -66,8 +66,8 @@ impl PieceGrid {
         &self.0[sq.index()]
     }
 
-    pub fn set(&mut self, sq: Square, pc: &Option<Piece>) {
-        self.0[sq.index()] = *pc;
+    pub fn set(&mut self, sq: Square, pc: Option<Piece>) {
+        self.0[sq.index()] = pc;
     }
 }
 
@@ -96,7 +96,7 @@ impl fmt::Debug for PieceGrid {
 /// pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").unwrap();
 ///
 /// let m = Move::Normal{from: SQ_7G, to: SQ_7F, promote: false};
-/// pos.make_move(&m).unwrap();
+/// pos.make_move(m).unwrap();
 ///
 /// assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f", pos.to_sfen());
 /// ```
@@ -138,7 +138,7 @@ impl Position {
     }
 
     /// Returns the number of the given piece in hand.
-    pub fn hand(&self, p: &Piece) -> u8 {
+    pub fn hand(&self, p: Piece) -> u8 {
         self.hand.get(p)
     }
 
@@ -202,7 +202,7 @@ impl Position {
         point += PieceType::iter()
             .filter(|pt| pt.is_hand_piece())
             .fold(0, |acc, pt| {
-                let num = self.hand.get(&Piece {
+                let num = self.hand.get(Piece {
                     piece_type: pt,
                     color: c,
                 });
@@ -240,7 +240,7 @@ impl Position {
 
     /// Sets a piece at the given square.
     fn set_piece(&mut self, sq: Square, p: Option<Piece>) {
-        self.board.set(sq, &p);
+        self.board.set(sq, p);
     }
 
     fn is_attacked_by(&self, sq: Square, c: Color) -> bool {
@@ -259,7 +259,7 @@ impl Position {
             color: c,
         };
 
-        &bb & &self.move_candidates(sq, &attack_pc.flip())
+        &bb & &self.move_candidates(sq, attack_pc.flip())
     }
 
     fn find_king(&self, c: Color) -> Option<Square> {
@@ -274,7 +274,7 @@ impl Position {
     fn log_position(&mut self) {
         // TODO: SFEN string is used to represent a state of position, but any transformation which uniquely distinguish positions can be used here.
         // Consider light-weight option if generating SFEN string for each move is time-consuming.
-        let sfen = self.generate_sfen().split(" ").take(3).join(" ");
+        let sfen = self.generate_sfen().split(' ').take(3).join(" ");
         let in_check = self.in_check(self.side_to_move());
 
         let continuous_check = if in_check {
@@ -297,10 +297,10 @@ impl Position {
     /////////////////////////////////////////////////////////////////////////
 
     /// Makes the given move. Returns `Err` if the move is invalid or any special condition is met.
-    pub fn make_move(&mut self, m: &Move) -> Result<(), MoveError> {
-        let res = match *m {
+    pub fn make_move(&mut self, m: Move) -> Result<(), MoveError> {
+        let res = match m {
             Move::Normal { from, to, promote } => self.make_normal_move(from, to, promote)?,
-            Move::Drop { to, ref piece_type } => self.make_drop_move(to, piece_type)?,
+            Move::Drop { to, piece_type } => self.make_drop_move(to, piece_type)?,
         };
 
         self.move_history.push(res);
@@ -311,7 +311,7 @@ impl Position {
         &mut self,
         from: Square,
         to: Square,
-        promote: bool,
+        promoted: bool,
     ) -> Result<MoveRecord, MoveError> {
         let stm = self.side_to_move();
         let opponent = stm.flip();
@@ -324,19 +324,19 @@ impl Position {
             return Err(MoveError::Inconsistent);
         }
 
-        if promote && !from.in_promotion_zone(stm) && !to.in_promotion_zone(stm) {
+        if promoted && !from.in_promotion_zone(stm) && !to.in_promotion_zone(stm) {
             return Err(MoveError::Inconsistent);
         }
 
-        if !self.move_candidates(from, &moved).any(|sq| sq == to) {
+        if !self.move_candidates(from, moved).any(|sq| sq == to) {
             return Err(MoveError::Inconsistent);
         }
 
-        if !promote && !moved.is_placeable_at(to) {
+        if !promoted && !moved.is_placeable_at(to) {
             return Err(MoveError::NonMovablePiece);
         }
 
-        let placed = if promote {
+        let placed = if promoted {
             match moved.promote() {
                 Some(promoted) => promoted,
                 None => return Err(MoveError::Inconsistent),
@@ -363,7 +363,7 @@ impl Position {
                 Some(unpromoted) => unpromoted,
                 None => pc,
             };
-            self.hand.increment(&pc);
+            self.hand.increment(pc);
         }
 
         if self.in_check(stm) {
@@ -386,7 +386,7 @@ impl Position {
                     Some(unpromoted) => unpromoted,
                     None => pc,
                 };
-                self.hand.decrement(&pc);
+                self.hand.decrement(pc);
             }
 
             return Err(MoveError::InCheck);
@@ -399,28 +399,28 @@ impl Position {
         self.detect_repetition()?;
 
         Ok(MoveRecord::Normal {
-            from: from,
-            to: to,
-            moved: moved,
-            captured: captured,
-            promoted: promote,
+            from,
+            to,
+            moved,
+            captured,
+            promoted,
         })
     }
 
-    fn make_drop_move(&mut self, to: Square, pt: &PieceType) -> Result<MoveRecord, MoveError> {
+    fn make_drop_move(&mut self, to: Square, pt: PieceType) -> Result<MoveRecord, MoveError> {
         let stm = self.side_to_move();
         let opponent = stm.flip();
 
-        if let Some(_) = *self.piece_at(to) {
+        if self.piece_at(to).is_some() {
             return Err(MoveError::Inconsistent);
         }
 
         let pc = Piece {
-            piece_type: *pt,
+            piece_type: pt,
             color: stm,
         };
 
-        if self.hand(&pc) == 0 {
+        if self.hand(pc) == 0 {
             return Err(MoveError::Inconsistent);
         }
 
@@ -461,7 +461,7 @@ impl Position {
 
                         if not_attacked {
                             // can the opponent's king evade?
-                            if self.move_candidates(king_sq, &pc).all(|sq| {
+                            let is_attacked = |sq| {
                                 if let Some(pc) = *self.piece_at(sq) {
                                     if pc.color == opponent {
                                         return true;
@@ -469,7 +469,9 @@ impl Position {
                                 }
 
                                 self.is_attacked_by(sq, stm)
-                            }) {
+                            };
+
+                            if self.move_candidates(king_sq, pc).all(is_attacked) {
                                 return Err(MoveError::Uchifuzume);
                             }
                         }
@@ -492,14 +494,14 @@ impl Position {
             return Err(MoveError::InCheck);
         }
 
-        self.hand.decrement(&pc);
+        self.hand.decrement(pc);
         self.side_to_move = opponent;
         self.ply += 1;
 
         self.log_position();
         self.detect_repetition()?;
 
-        Ok(MoveRecord::Drop { to: to, piece: pc })
+        Ok(MoveRecord::Drop { to, piece: pc })
     }
 
     fn pinned_bb(&self, c: Color) -> Bitboard {
@@ -591,11 +593,11 @@ impl Position {
                     self.occupied_bb ^= to;
                     self.type_bb[cap.piece_type.index()] ^= to;
                     self.color_bb[cap.color.index()] ^= to;
-                    self.hand.decrement(&cap.flip());
+                    self.hand.decrement(cap.flip());
                 }
             }
-            MoveRecord::Drop { to, ref piece } => {
-                if *self.piece_at(to) != Some(*piece) {
+            MoveRecord::Drop { to, piece } => {
+                if *self.piece_at(to) != Some(piece) {
                     return Err(MoveError::Inconsistent);
                 }
 
@@ -615,7 +617,7 @@ impl Position {
     }
 
     /// Returns a list of squares to where the given pieve at the given square can move.
-    pub fn move_candidates(&self, sq: Square, p: &Piece) -> Bitboard {
+    pub fn move_candidates(&self, sq: Square, p: Piece) -> Bitboard {
         let bb = match p.piece_type {
             PieceType::Rook => BBFactory::rook_attack(sq, &self.occupied_bb),
             PieceType::Bishop => BBFactory::bishop_attack(sq, &self.occupied_bb),
@@ -664,7 +666,7 @@ impl Position {
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -701,7 +703,7 @@ impl Position {
             for m in parts {
                 if let Some(m) = Move::from_sfen(m) {
                     // Stop if any error occurrs.
-                    match self.make_move(&m) {
+                    match self.make_move(m) {
                         Ok(_) => {
                             self.log_position();
                         }
@@ -830,7 +832,7 @@ impl Position {
                 }
                 s => {
                     match Piece::from_sfen(s) {
-                        Some(p) => self.hand.set(&p, num_pieces),
+                        Some(p) => self.hand.set(p, num_pieces),
                         None => return Err(SfenError {}),
                     };
                     num_pieces = 1;
@@ -889,7 +891,7 @@ impl Position {
                             piece_type: pt,
                             color: *c,
                         };
-                        let n = self.hand.get(&pc);
+                        let n = self.hand.get(pc);
 
                         if n == 0 {
                             "".to_string()
@@ -964,9 +966,9 @@ impl fmt::Display for Position {
             for pt in PieceType::iter().filter(|pt| pt.is_hand_piece()) {
                 let pc = Piece {
                     piece_type: pt,
-                    color: color,
+                    color,
                 };
-                let n = self.hand.get(&pc);
+                let n = self.hand.get(pc);
 
                 if n > 0 {
                     write!(f, "{}{} ", pc, n)?;
@@ -976,11 +978,11 @@ impl fmt::Display for Position {
         };
         write!(f, "Hand (Black): ")?;
         fmt_hand(Color::Black, f)?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         write!(f, "Hand (White): ")?;
         fmt_hand(Color::White, f)?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         write!(f, "Ply: {}", self.ply)?;
 
@@ -1115,7 +1117,7 @@ mod tests {
 
             if let Some(pc) = *pc {
                 if pc.color == pos.side_to_move() {
-                    sum += pos.move_candidates(sq, &pc).count();
+                    sum += pos.move_candidates(sq, pc).count();
                 }
             }
         }
@@ -1176,7 +1178,7 @@ mod tests {
                 .expect("failed to parse SFEN string");
             assert_eq!(
                 case.2,
-                pos.make_move(&Move::Drop {
+                pos.make_move(Move::Drop {
                     to: case.0,
                     piece_type: case.1,
                 })
@@ -1205,7 +1207,7 @@ mod tests {
             pos.set_sfen(case.0).expect("failed to parse SFEN string");
             assert_eq!(
                 Some(MoveError::Nifu),
-                pos.make_move(&Move::Drop {
+                pos.make_move(Move::Drop {
                     to: case.1,
                     piece_type: PieceType::Pawn,
                 })
@@ -1218,7 +1220,7 @@ mod tests {
         for (i, case) in ok_cases.iter().enumerate() {
             pos.set_sfen(case.0).expect("failed to parse SFEN string");
             assert!(
-                pos.make_move(&Move::Drop {
+                pos.make_move(Move::Drop {
                     to: case.1,
                     piece_type: PieceType::Pawn,
                 })
@@ -1253,7 +1255,7 @@ mod tests {
             pos.set_sfen(case.0).expect("failed to parse SFEN string");
             assert_eq!(
                 Some(MoveError::Uchifuzume),
-                pos.make_move(&Move::Drop {
+                pos.make_move(Move::Drop {
                     to: case.1,
                     piece_type: PieceType::Pawn,
                 })
@@ -1266,7 +1268,7 @@ mod tests {
         for (i, case) in ok_cases.iter().enumerate() {
             pos.set_sfen(case.0).expect("failed to parse SFEN string");
             assert!(
-                pos.make_move(&Move::Drop {
+                pos.make_move(Move::Drop {
                     to: case.1,
                     piece_type: PieceType::Pawn,
                 })
@@ -1286,14 +1288,14 @@ mod tests {
             .expect("failed to parse SFEN string");
 
         for _ in 0..2 {
-            assert!(pos.make_drop_move(SQ_7A, &PieceType::Silver).is_ok());
-            assert!(pos.make_drop_move(SQ_7C, &PieceType::Silver).is_ok());
+            assert!(pos.make_drop_move(SQ_7A, PieceType::Silver).is_ok());
+            assert!(pos.make_drop_move(SQ_7C, PieceType::Silver).is_ok());
             assert!(pos.make_normal_move(SQ_7A, SQ_8B, true).is_ok());
             assert!(pos.make_normal_move(SQ_7C, SQ_8B, false).is_ok());
         }
 
-        assert!(pos.make_drop_move(SQ_7A, &PieceType::Silver).is_ok());
-        assert!(pos.make_drop_move(SQ_7C, &PieceType::Silver).is_ok());
+        assert!(pos.make_drop_move(SQ_7A, PieceType::Silver).is_ok());
+        assert!(pos.make_drop_move(SQ_7C, PieceType::Silver).is_ok());
         assert!(pos.make_normal_move(SQ_7A, SQ_8B, true).is_ok());
         assert_eq!(
             Some(MoveError::Repetition),
@@ -1357,7 +1359,7 @@ mod tests {
         for case in test_cases.iter() {
             pos.set_sfen(base_sfen)
                 .expect("failed to parse SFEN string");
-            pos.make_move(&case).expect("failed to make a move");
+            pos.make_move(*case).expect("failed to make a move");
             pos.unmake_move().expect("failed to unmake a move");
             assert_eq!(base_sfen, pos.to_sfen());
         }
@@ -1521,14 +1523,14 @@ mod tests {
             let (pt, n) = *case;
             assert_eq!(
                 n,
-                pos.hand(&Piece {
+                pos.hand(Piece {
                     piece_type: pt,
                     color: Color::Black,
                 })
             );
             assert_eq!(
                 n,
-                pos.hand(&Piece {
+                pos.hand(Piece {
                     piece_type: pt,
                     color: Color::White,
                 })
@@ -1668,7 +1670,7 @@ mod tests {
 
         for case in hand_pieces.iter() {
             let (p, n) = *case;
-            assert_eq!(n, pos.hand(&p));
+            assert_eq!(n, pos.hand(p));
         }
 
         assert_eq!(Color::White, pos.side_to_move());

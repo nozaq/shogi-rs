@@ -96,8 +96,8 @@ impl TimeControl {
     /// assert!(!byoyomi.consume(Color::White, Duration::from_secs(20)));
     /// ```
     pub fn consume(&mut self, c: Color, d: Duration) -> bool {
-        match self {
-            &mut TimeControl::Byoyomi {
+        match *self {
+            TimeControl::Byoyomi {
                 ref mut black_time,
                 ref mut white_time,
                 ref byoyomi,
@@ -113,7 +113,7 @@ impl TimeControl {
                 }
                 *target_time -= min(*target_time, d);
             }
-            &mut TimeControl::FischerClock {
+            TimeControl::FischerClock {
                 ref mut black_time,
                 ref mut white_time,
                 ref black_inc,

@@ -51,10 +51,10 @@ impl PieceType {
     /// assert_eq!(Some(PieceType::ProPawn), PieceType::Pawn.promote());
     /// assert_eq!(None, PieceType::ProPawn.promote());
     /// ```
-    pub fn promote(&self) -> Option<PieceType> {
+    pub fn promote(self) -> Option<PieceType> {
         use self::PieceType::*;
 
-        Some(match *self {
+        Some(match self {
             Pawn => ProPawn,
             Lance => ProLance,
             Knight => ProKnight,
@@ -75,10 +75,10 @@ impl PieceType {
     /// assert_eq!(Some(PieceType::Pawn), PieceType::ProPawn.unpromote());
     /// assert_eq!(None, PieceType::Pawn.unpromote());
     /// ```
-    pub fn unpromote(&self) -> Option<PieceType> {
+    pub fn unpromote(self) -> Option<PieceType> {
         use self::PieceType::*;
 
-        Some(match *self {
+        Some(match self {
             ProPawn => Pawn,
             ProLance => Lance,
             ProKnight => Knight,
@@ -90,8 +90,8 @@ impl PieceType {
     }
 
     /// Checks if this piece type can be a part of hand pieces.
-    pub fn is_hand_piece(&self) -> bool {
-        match *self {
+    pub fn is_hand_piece(self) -> bool {
+        match self {
             PieceType::Rook
             | PieceType::Bishop
             | PieceType::Gold
@@ -105,8 +105,8 @@ impl PieceType {
 
     /// Converts the instance into the unique number for array indexing purpose.
     #[inline(always)]
-    pub fn index(&self) -> usize {
-        *self as usize
+    pub fn index(self) -> usize {
+        self as usize
     }
 }
 

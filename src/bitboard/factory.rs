@@ -100,15 +100,11 @@ impl Factory {
 
 const EMPTY_BB: Bitboard = Bitboard { p: [0, 0] };
 const FULL_BB: Bitboard = Bitboard {
-    p: [0x7fffffffffffffff, 0x000000000003ffff],
+    p: [0x7fff_ffff_ffff_ffff, 0x0000_0000_0003_ffff],
 };
 
-const FILE1_BB: Bitboard = Bitboard {
-    p: [0x1FF << (9 * 0), 0],
-};
-const FILE2_BB: Bitboard = Bitboard {
-    p: [0x1FF << (9 * 1), 0],
-};
+const FILE1_BB: Bitboard = Bitboard { p: [0x1FF, 0] };
+const FILE2_BB: Bitboard = Bitboard { p: [0x1FF << 9, 0] };
 const FILE3_BB: Bitboard = Bitboard {
     p: [0x1FF << (9 * 2), 0],
 };
@@ -124,42 +120,38 @@ const FILE6_BB: Bitboard = Bitboard {
 const FILE7_BB: Bitboard = Bitboard {
     p: [0x1FF << (9 * 6), 0],
 };
-const FILE8_BB: Bitboard = Bitboard {
-    p: [0, 0x1FF << (9 * 0)],
-};
-const FILE9_BB: Bitboard = Bitboard {
-    p: [0, 0x1FF << (9 * 1)],
-};
+const FILE8_BB: Bitboard = Bitboard { p: [0, 0x1FF] };
+const FILE9_BB: Bitboard = Bitboard { p: [0, 0x1FF << 9] };
 const FILE_BB: [Bitboard; 9] = [
     FILE1_BB, FILE2_BB, FILE3_BB, FILE4_BB, FILE5_BB, FILE6_BB, FILE7_BB, FILE8_BB, FILE9_BB,
 ];
 
 const RANK1_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 0, 0x201 << 0],
+    p: [0x0040_2010_0804_0201, 0x201],
 };
 const RANK2_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 1, 0x201 << 1],
+    p: [0x0040_2010_0804_0201 << 1, 0x201 << 1],
 };
 const RANK3_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 2, 0x201 << 2],
+    p: [0x0040_2010_0804_0201 << 2, 0x201 << 2],
 };
 const RANK4_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 3, 0x201 << 3],
+    p: [0x0040_2010_0804_0201 << 3, 0x201 << 3],
 };
 const RANK5_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 4, 0x201 << 4],
+    p: [0x0040_2010_0804_0201 << 4, 0x201 << 4],
 };
 const RANK6_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 5, 0x201 << 5],
+    p: [0x0040_2010_0804_0201 << 5, 0x201 << 5],
 };
 const RANK7_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 6, 0x201 << 6],
+    p: [0x0040_2010_0804_0201 << 6, 0x201 << 6],
 };
 const RANK8_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 7, 0x201 << 7],
+    p: [0x0040_2010_0804_0201 << 7, 0x201 << 7],
 };
 const RANK9_BB: Bitboard = Bitboard {
-    p: [0x40201008040201 << 8, 0x201 << 8],
+    p: [0x0040_2010_0804_0201 << 8, 0x201 << 8],
 };
 const RANK_BB: [Bitboard; 9] = [
     RANK1_BB, RANK2_BB, RANK3_BB, RANK4_BB, RANK5_BB, RANK6_BB, RANK7_BB, RANK8_BB, RANK9_BB,
@@ -212,7 +204,7 @@ const IN_FRONT_BB: [[Bitboard; 9]; 2] = [
 
 static mut ROOK_BLOCK_MASK: [Bitboard; 81] = [Bitboard { p: [0, 0] }; 81];
 static mut ROOK_ATTACK_INDEX: [usize; 81] = [0; 81];
-static mut ROOK_ATTACK_BB: [Bitboard; 495616] = [Bitboard { p: [0, 0] }; 495616];
+static mut ROOK_ATTACK_BB: [Bitboard; 495_616] = [Bitboard { p: [0, 0] }; 495_616];
 const ROOK_BLOCK_BITS: [usize; 81] = [
     14, 13, 13, 13, 13, 13, 13, 13, 14, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12,
     12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12, 12, 12, 12, 12, 12, 13, 13, 12, 12,
@@ -237,7 +229,7 @@ static mut BETWEEN_BB: [[Bitboard; 81]; 81] = [[Bitboard { p: [0, 0] }; 81]; 81]
 #[inline(always)]
 fn index_to_occupied(index: usize, bits: usize, mask: &Bitboard) -> Bitboard {
     let mut bb = Bitboard::empty();
-    let mut mask_work = mask.clone();
+    let mut mask_work = *mask;
     for i in 0..bits {
         let sq = mask_work.pop();
         if index & (1 << i) != 0 {

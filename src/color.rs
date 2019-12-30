@@ -38,8 +38,8 @@ impl Color {
     /// assert_eq!(Color::White, Color::Black.flip());
     /// assert_eq!(Color::Black, Color::White.flip());
     /// ```
-    pub fn flip(&self) -> Color {
-        match *self {
+    pub fn flip(self) -> Color {
+        match self {
             Color::Black => Color::White,
             Color::White => Color::Black,
         }
@@ -47,8 +47,8 @@ impl Color {
 
     /// Converts the instance into the unique number for array indexing purpose.
     #[inline(always)]
-    pub fn index(&self) -> usize {
-        *self as usize
+    pub fn index(self) -> usize {
+        self as usize
     }
 }
 

@@ -2,10 +2,10 @@ use crate::Color;
 use std::fmt;
 use std::iter;
 
-const ASCII_1: u8 = '1' as u8;
-const ASCII_9: u8 = '9' as u8;
-const ASCII_LOWER_A: u8 = 'a' as u8;
-const ASCII_LOWER_I: u8 = 'i' as u8;
+const ASCII_1: u8 = b'1';
+const ASCII_9: u8 = b'9';
+const ASCII_LOWER_A: u8 = b'a';
+const ASCII_LOWER_I: u8 = b'i';
 
 /// Represents a position of each cell in the game board.
 ///
@@ -90,12 +90,12 @@ impl Square {
     }
 
     /// Returns a file of the square.
-    pub fn file(&self) -> u8 {
+    pub fn file(self) -> u8 {
         self.inner / 9
     }
 
     /// Returns a rank of the square.
-    pub fn rank(&self) -> u8 {
+    pub fn rank(self) -> u8 {
         self.inner % 9
     }
 
@@ -112,7 +112,7 @@ impl Square {
     /// assert_eq!(3, shifted.file());
     /// assert_eq!(4, shifted.rank());
     /// ```
-    pub fn shift(&self, df: i8, dr: i8) -> Option<Square> {
+    pub fn shift(self, df: i8, dr: i8) -> Option<Square> {
         let f = self.file() as i8 + df;
         let r = self.rank() as i8 + dr;
 
@@ -138,7 +138,7 @@ impl Square {
     /// assert_eq!(6, sq.relative_rank(Color::Black));
     /// assert_eq!(2, sq.relative_rank(Color::White));
     /// ```
-    pub fn relative_rank(&self, c: Color) -> u8 {
+    pub fn relative_rank(self, c: Color) -> u8 {
         if c == Color::Black {
             self.rank()
         } else {
@@ -147,13 +147,13 @@ impl Square {
     }
 
     /// Tests if the square is in a promotion zone.
-    pub fn in_promotion_zone(&self, c: Color) -> bool {
+    pub fn in_promotion_zone(self, c: Color) -> bool {
         self.relative_rank(c) < 3
     }
 
     /// Converts the instance into the unique number for array indexing purpose.
     #[inline(always)]
-    pub fn index(&self) -> usize {
+    pub fn index(self) -> usize {
         self.inner as usize
     }
 }

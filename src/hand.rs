@@ -11,10 +11,10 @@ use crate::{Color, Piece, PieceType};
 /// let black_pawn = Piece{piece_type: PieceType::Pawn, color: Color::Black};
 /// let white_pawn = Piece{piece_type: PieceType::Pawn, color: Color::White};
 ///
-/// hand.set(&black_pawn, 2);
-/// hand.increment(&black_pawn);
-/// assert_eq!(3, hand.get(&black_pawn));
-/// assert_eq!(0, hand.get(&white_pawn));
+/// hand.set(black_pawn, 2);
+/// hand.increment(black_pawn);
+/// assert_eq!(3, hand.get(black_pawn));
+/// assert_eq!(0, hand.get(white_pawn));
 /// ```
 #[derive(Debug, Default)]
 pub struct Hand {
@@ -23,26 +23,26 @@ pub struct Hand {
 
 impl Hand {
     /// Returns a number of the given piece.
-    pub fn get(&self, p: &Piece) -> u8 {
+    pub fn get(&self, p: Piece) -> u8 {
         Hand::index(p).map(|i| self.inner[i]).unwrap_or(0)
     }
 
     /// Sets a number of the given piece.
-    pub fn set(&mut self, p: &Piece, num: u8) {
+    pub fn set(&mut self, p: Piece, num: u8) {
         if let Some(i) = Hand::index(p) {
             self.inner[i] = num;
         }
     }
 
     /// Increments a number of the given piece.
-    pub fn increment(&mut self, p: &Piece) {
+    pub fn increment(&mut self, p: Piece) {
         if let Some(i) = Hand::index(p) {
             self.inner[i] += 1
         }
     }
 
     /// Decrements a number of the given piece.
-    pub fn decrement(&mut self, p: &Piece) {
+    pub fn decrement(&mut self, p: Piece) {
         if let Some(i) = Hand::index(p) {
             self.inner[i] -= 1
         }
@@ -55,7 +55,7 @@ impl Hand {
         }
     }
 
-    fn index(p: &Piece) -> Option<usize> {
+    fn index(p: Piece) -> Option<usize> {
         let base = match p.piece_type {
             PieceType::Pawn => 0,
             PieceType::Lance => 1,
