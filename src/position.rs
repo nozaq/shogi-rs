@@ -442,7 +442,9 @@ impl Position {
             if let Some(king_sq) = to.shift(0, if stm == Color::Black { -1 } else { 1 }) {
                 // Is the dropped pawn attacking the opponent's king?
                 if let Some(
-                    pc @ Piece {
+                    pc
+                    @
+                    Piece {
                         piece_type: PieceType::King,
                         ..
                     },
