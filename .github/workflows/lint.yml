@@ -4,7 +4,7 @@ on:
     - master
   pull_request:
 
-name: Lint
+name: lint
 
 jobs:
   ci:
