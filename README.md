@@ -13,7 +13,7 @@ A Bitboard-based shogi library in Rust. Board representation, move generation/va
 
 ```toml
 [dependencies]
-shogi = "0.7"
+shogi = "0.9"
 ```
 
 ## License
