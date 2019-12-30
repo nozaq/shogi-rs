@@ -25,7 +25,6 @@ debug = true
 lto = false
 debug-assertions = true
 codegen-units = 1
-panic = 'unwind'
 
 [profile.bench]
 opt-level = 3
@@ -34,4 +33,3 @@ rpath = false
 lto = true
 debug-assertions = false
 codegen-units = 1
-panic = 'abort'
