@@ -13,7 +13,7 @@ edition = "2018"
 
 [dependencies]
 bitintr = "0.2.0"
-itertools = "0.8.0"
+itertools = "0.8.2"
 
 [badges]
 travis-ci = { repository = "nozaq/shogi-rs" }
