@@ -18,7 +18,7 @@ impl error::Error for SfenError {
         "illegal SFEN string"
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         None
     }
 }
@@ -82,7 +82,7 @@ impl error::Error for MoveError {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             _ => None,
         }
