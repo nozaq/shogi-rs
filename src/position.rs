@@ -10,7 +10,7 @@ pub enum MoveRecord {
     Normal {
         from: Square,
         to: Square,
-        moved: Piece,
+        placed: Piece,
         captured: Option<Piece>,
         promoted: bool,
     },
@@ -316,20 +316,24 @@ impl Position {
         let stm = self.side_to_move();
         let opponent = stm.flip();
 
-        let moved = self.piece_at(from).ok_or(MoveError::Inconsistent)?;
+        let moved = self
+            .piece_at(from)
+            .ok_or(MoveError::Inconsistent("No piece found"))?;
 
         let captured = *self.piece_at(to);
 
         if moved.color != stm {
-            return Err(MoveError::Inconsistent);
+            return Err(MoveError::Inconsistent(
+                "The piece is not for the side to move",
+            ));
         }
 
         if promoted && !from.in_promotion_zone(stm) && !to.in_promotion_zone(stm) {
-            return Err(MoveError::Inconsistent);
+            return Err(MoveError::Inconsistent("The piece cannot promote"));
         }
 
         if !self.move_candidates(from, moved).any(|sq| sq == to) {
-            return Err(MoveError::Inconsistent);
+            return Err(MoveError::Inconsistent("The piece cannot move to there"));
         }
 
         if !promoted && !moved.is_placeable_at(to) {
@@ -339,7 +343,7 @@ impl Position {
         let placed = if promoted {
             match moved.promote() {
                 Some(promoted) => promoted,
-                None => return Err(MoveError::Inconsistent),
+                None => return Err(MoveError::Inconsistent("This type of piece cannot promote")),
             }
         } else {
             moved
@@ -401,7 +405,7 @@ impl Position {
         Ok(MoveRecord::Normal {
             from,
             to,
-            moved,
+            placed,
             captured,
             promoted,
         })
@@ -412,7 +416,7 @@ impl Position {
         let opponent = stm.flip();
 
         if self.piece_at(to).is_some() {
-            return Err(MoveError::Inconsistent);
+            return Err(MoveError::Inconsistent("There is already a piece in `to`"));
         }
 
         let pc = Piece {
@@ -421,7 +425,7 @@ impl Position {
         };
 
         if self.hand(pc) == 0 {
-            return Err(MoveError::Inconsistent);
+            return Err(MoveError::Inconsistent("The piece is not in the hand"));
         }
 
         if !pc.is_placeable_at(to) {
@@ -560,45 +564,52 @@ impl Position {
             MoveRecord::Normal {
                 from,
                 to,
-                ref moved,
+                ref placed,
                 ref captured,
                 promoted,
             } => {
                 if *self.piece_at(from) != None {
-                    return Err(MoveError::Inconsistent);
+                    return Err(MoveError::Inconsistent(
+                        "`from` of the move is filled by another piece",
+                    ));
                 }
 
-                let pc = if promoted {
-                    match moved.unpromote() {
+                let moved = if promoted {
+                    match placed.unpromote() {
                         Some(unpromoted) => unpromoted,
-                        None => return Err(MoveError::Inconsistent),
+                        None => return Err(MoveError::Inconsistent("Cannot unpromoted the piece")),
                     }
                 } else {
-                    *moved
+                    *placed
                 };
-                if *self.piece_at(to) != Some(pc) {
-                    return Err(MoveError::Inconsistent);
+                if *self.piece_at(to) != Some(*placed) {
+                    return Err(MoveError::Inconsistent(
+                        "Expected piece is not found in `to`",
+                    ));
                 }
 
-                self.set_piece(from, Some(*moved));
+                self.set_piece(from, Some(moved));
                 self.set_piece(to, *captured);
                 self.occupied_bb ^= from;
                 self.occupied_bb ^= to;
                 self.type_bb[moved.piece_type.index()] ^= from;
-                self.type_bb[moved.piece_type.index()] ^= to;
+                self.type_bb[placed.piece_type.index()] ^= to;
                 self.color_bb[moved.color.index()] ^= from;
-                self.color_bb[moved.color.index()] ^= to;
+                self.color_bb[placed.color.index()] ^= to;
 
                 if let Some(ref cap) = *captured {
                     self.occupied_bb ^= to;
                     self.type_bb[cap.piece_type.index()] ^= to;
                     self.color_bb[cap.color.index()] ^= to;
-                    self.hand.decrement(cap.flip());
+                    let unpromoted_cap = cap.unpromote().unwrap_or(*cap);
+                    self.hand.decrement(unpromoted_cap.flip());
                 }
             }
             MoveRecord::Drop { to, piece } => {
                 if *self.piece_at(to) != Some(piece) {
-                    return Err(MoveError::Inconsistent);
+                    return Err(MoveError::Inconsistent(
+                        "Expected piece is not found in `to`",
+                    ));
                 }
 
                 self.set_piece(to, None);
@@ -1351,19 +1362,92 @@ mod tests {
     fn unmake_move() {
         setup();
 
-        let base_sfen = "l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RG5gsnp 1";
-        let test_cases = [Move::Drop {
-            to: SQ_5E,
-            piece_type: PieceType::Pawn,
-        }];
-
         let mut pos = Position::new();
+        let base_sfen = "l6nl/4+p+P1gk/2n2S3/p1p4Pp/3P2Sp1/1PPb2P1P/4+P1GS1/R8/LN4bKL w RG5gsnp 1";
+        pos.set_sfen(base_sfen)
+            .expect("failed to parse SFEN string");
+        let base_state = format!("{}", pos);
+        println!("{}", base_state);
+        let test_cases = [
+            Move::Drop {
+                to: SQ_5E,
+                piece_type: PieceType::Pawn,
+            },
+            // No capture by unpromoted piece
+            Move::Normal {
+                from: SQ_6F,
+                to: SQ_7G,
+                promote: false,
+            },
+            // No capture by promoting piece
+            Move::Normal {
+                from: SQ_6F,
+                to: SQ_7G,
+                promote: true,
+            },
+            // No capture by promoted piece
+            Move::Normal {
+                from: SQ_5B,
+                to: SQ_5A,
+                promote: false,
+            },
+            // Capture of unpromoted piece by unpromoted piece
+            Move::Normal {
+                from: SQ_6F,
+                to: SQ_9I,
+                promote: false,
+            },
+            // Capture of unpromoted piece by promoting piece
+            Move::Normal {
+                from: SQ_6F,
+                to: SQ_9I,
+                promote: true,
+            },
+            // Capture of unpromoted piece by promoted piece
+            Move::Normal {
+                from: SQ_5B,
+                to: SQ_4C,
+                promote: false,
+            },
+            // Capture of promoted piece by unpromoted piece
+            Move::Normal {
+                from: SQ_6F,
+                to: SQ_5G,
+                promote: false,
+            },
+            // Capture of promoted piece by promoting piece
+            Move::Normal {
+                from: SQ_6F,
+                to: SQ_5G,
+                promote: true,
+            },
+            // Capture of promoted piece by promoted piece
+            Move::Normal {
+                from: SQ_5B,
+                to: SQ_4B,
+                promote: false,
+            },
+        ];
+
         for case in test_cases.iter() {
             pos.set_sfen(base_sfen)
                 .expect("failed to parse SFEN string");
-            pos.make_move(*case).expect("failed to make a move");
-            pos.unmake_move().expect("failed to unmake a move");
-            assert_eq!(base_sfen, pos.to_sfen());
+            pos.make_move(*case)
+                .expect(format!("failed to make a move: {}", case).as_str());
+            pos.unmake_move()
+                .expect(format!("failed to unmake a move: {}", case).as_str());
+            assert_eq!(
+                base_sfen,
+                pos.to_sfen(),
+                "{}",
+                format!("sfen unmatch for {}", case).as_str()
+            );
+            assert_eq!(
+                base_state,
+                format!("{}", pos),
+                "{}",
+                format!("state unmatch for {}", case).as_str()
+            );
         }
     }
 

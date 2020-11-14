@@ -45,7 +45,7 @@ pub enum MoveError {
     PerpetualCheckLose,
     EnemysTurn,
     NonMovablePiece,
-    Inconsistent,
+    Inconsistent(&'static str),
     Repetition,
 }
 
@@ -59,9 +59,11 @@ impl fmt::Display for MoveError {
             MoveError::PerpetualCheckLose => write!(f, "perpetual check detected"),
             MoveError::EnemysTurn => write!(f, "not your turn"),
             MoveError::NonMovablePiece => write!(f, "the piece can not move anymore"),
-            MoveError::Inconsistent => {
-                write!(f, "the move is inconsistent with the current positoin")
-            }
+            MoveError::Inconsistent(message) => write!(
+                f,
+                "the move is inconsistent with the current position: {}",
+                message
+            ),
             MoveError::Repetition => write!(f, "repetition detected"),
         }
     }
@@ -77,7 +79,9 @@ impl error::Error for MoveError {
             MoveError::PerpetualCheckLose => "perpetual check detected",
             MoveError::EnemysTurn => "not your turn",
             MoveError::NonMovablePiece => "the piece can not move anymore",
-            MoveError::Inconsistent => "the move is inconsistent with the current positoin",
+            MoveError::Inconsistent(message) => {
+                "the move is inconsistent with the current position:"
+            } // TODO include message
             MoveError::Repetition => "repetition detected",
         }
     }
