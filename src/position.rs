@@ -822,20 +822,22 @@ impl Position {
             return Ok(());
         }
 
-        let mut num_pieces: u8 = 1;
+        let mut num_pieces: u8 = 0;
         for c in s.chars() {
             match c {
                 n if n.is_digit(10) => {
                     if let Some(n) = n.to_digit(10) {
-                        num_pieces = n as u8;
+                        num_pieces = num_pieces * 10 + (n as u8);
                     }
                 }
                 s => {
                     match Piece::from_sfen(s) {
-                        Some(p) => self.hand.set(p, num_pieces),
+                        Some(p) => self
+                            .hand
+                            .set(p, if num_pieces == 0 { 1 } else { num_pieces }),
                         None => return Err(SfenError {}),
                     };
-                    num_pieces = 1;
+                    num_pieces = 0;
                 }
             }
         }
@@ -1546,6 +1548,7 @@ mod tests {
         setup();
 
         let test_cases = [
+            "7k1/9/7P1/9/9/9/9/9/9 b G2r2b3g4s4n4l17p 1",
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
             "lnsgk+Lpnl/1p5+B1/p1+Pps1ppp/9/9/9/P+r1PPpPPP/1R7/LNSGKGSN1 w BGP2p \
              1024",
