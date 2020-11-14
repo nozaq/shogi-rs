@@ -79,9 +79,7 @@ impl error::Error for MoveError {
             MoveError::PerpetualCheckLose => "perpetual check detected",
             MoveError::EnemysTurn => "not your turn",
             MoveError::NonMovablePiece => "the piece can not move anymore",
-            MoveError::Inconsistent(message) => {
-                "the move is inconsistent with the current position:"
-            } // TODO include message
+            MoveError::Inconsistent(_) => "the move is inconsistent with the current position",
             MoveError::Repetition => "repetition detected",
         }
     }
