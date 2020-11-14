@@ -116,7 +116,7 @@ impl Square {
         let f = self.file() as i8 + df;
         let r = self.rank() as i8 + dr;
 
-        if f < 0 || f > 8 || r < 0 || r > 8 {
+        if !(0..9).contains(&f) || !(0..9).contains(&r) {
             return None;
         }
 
