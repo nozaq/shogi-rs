@@ -22,7 +22,7 @@ impl Move {
             return None;
         }
 
-        let first = s.chars().nth(0).unwrap();
+        let first = s.chars().next().unwrap();
         if first.is_digit(10) {
             if let Some(from) = Square::from_sfen(&s[0..2]) {
                 if let Some(to) = Square::from_sfen(&s[2..4]) {
@@ -34,7 +34,7 @@ impl Move {
 
             return None;
         } else if first.is_uppercase() && s.chars().nth(1).unwrap() == '*' {
-            if let Some(piece_type) = first.to_lowercase().nth(0).and_then(PieceType::from_sfen) {
+            if let Some(piece_type) = first.to_lowercase().next().and_then(PieceType::from_sfen) {
                 if let Some(to) = Square::from_sfen(&s[2..4]) {
                     return Some(Move::Drop { to, piece_type });
                 }

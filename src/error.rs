@@ -85,8 +85,6 @@ impl error::Error for MoveError {
     }
 
     fn cause(&self) -> Option<&dyn error::Error> {
-        match *self {
-            _ => None,
-        }
+        None
     }
 }
