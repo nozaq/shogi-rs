@@ -91,16 +91,16 @@ impl PieceType {
 
     /// Checks if this piece type can be a part of hand pieces.
     pub fn is_hand_piece(self) -> bool {
-        match self {
+        matches!(
+            self,
             PieceType::Rook
-            | PieceType::Bishop
-            | PieceType::Gold
-            | PieceType::Silver
-            | PieceType::Knight
-            | PieceType::Lance
-            | PieceType::Pawn => true,
-            _ => false,
-        }
+                | PieceType::Bishop
+                | PieceType::Gold
+                | PieceType::Silver
+                | PieceType::Knight
+                | PieceType::Lance
+                | PieceType::Pawn
+        )
     }
 
     /// Converts the instance into the unique number for array indexing purpose.
@@ -202,7 +202,7 @@ mod tests {
             assert_eq!(Some(case.1), PieceType::from_sfen(case.0));
             assert_eq!(
                 Some(case.1),
-                PieceType::from_sfen(case.0.to_uppercase().nth(0).unwrap())
+                PieceType::from_sfen(case.0.to_uppercase().next().unwrap())
             );
         }
 

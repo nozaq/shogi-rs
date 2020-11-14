@@ -1433,9 +1433,9 @@ mod tests {
             pos.set_sfen(base_sfen)
                 .expect("failed to parse SFEN string");
             pos.make_move(*case)
-                .expect(format!("failed to make a move: {}", case).as_str());
+                .unwrap_or_else(|_| panic!("failed to make a move: {}", case));
             pos.unmake_move()
-                .expect(format!("failed to unmake a move: {}", case).as_str());
+                .unwrap_or_else(|_| panic!("failed to unmake a move: {}", case));
             assert_eq!(
                 base_sfen,
                 pos.to_sfen(),
