@@ -2,6 +2,15 @@
 ## [Unreleased]
 
 
+<a name="0.10.0"></a>
+## [0.10.0] - 2020-11-14
+### Fix
+- use range expressions
+- clippy warnings
+- rename an unused variable
+- unmaking of capturing move ([#27](https://github.com/nozaq/shogi-rs/issues/27))
+
+
 <a name="0.9.0"></a>
 ## [0.9.0] - 2019-12-30
 ### Refactor
@@ -67,7 +76,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/nozaq/shogi-rs/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/nozaq/shogi-rs/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/nozaq/shogi-rs/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/nozaq/shogi-rs/compare/0.6.0...0.7.0
