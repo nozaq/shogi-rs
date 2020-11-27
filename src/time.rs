@@ -6,8 +6,8 @@ use crate::Color;
 /// Represents various time controls.
 ///
 /// Currently
-/// [Byo-yomi](https://en.wikipedia.org/wiki/Time_control#Japanese_byo-yomi) and
-/// [Fischer Clock](https://en.wikipedia.org/wiki/Time_control#Compensation_.28delay_or_increment_methods.29)
+/// [Byo-yomi](https://en.wikipedia.org/wiki/Time_control#Byo-yomi) and
+/// [Fischer Clock](https://en.wikipedia.org/wiki/Time_control#Increment_and_delay_methods)
 /// are supported.
 ///
 /// # Examples
