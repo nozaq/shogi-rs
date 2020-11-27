@@ -63,8 +63,8 @@ impl fmt::Display for Color {
 
 /// This struct is created by the [`iter`] method on [`Color`].
 ///
-/// [`iter`]: ./struct.Color.html#method.iter
-/// [`Color`]: struct.Color.html
+/// [`iter`]: enum.Color.html#method.iter
+/// [`Color`]: enum.Color.html
 pub struct ColorIter {
     current: Option<Color>,
 }

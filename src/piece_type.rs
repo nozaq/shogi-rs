@@ -137,8 +137,8 @@ impl fmt::Display for PieceType {
 
 /// This struct is created by the [`iter`] method on [`PieceType`].
 ///
-/// [`iter`]: ./struct.PieceType.html#method.iter
-/// [`PieceType`]: struct.PieceType.html
+/// [`iter`]: enum.PieceType.html#method.iter
+/// [`PieceType`]: enum.PieceType.html
 pub struct PieceTypeIter {
     current: Option<PieceType>,
 }
