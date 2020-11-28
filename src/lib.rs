@@ -2,7 +2,7 @@
 //!
 //! `shogi` provides a various types and implementations for representing concepts and rules in Shogi.
 //! Most types can be created programatically while they can also be deserialized from / serialized to SFEN format.
-//! See http://www.geocities.jp/shogidokoro/usi.html for more detail about UCI protocol specification and SFEN format.
+//! See [USIプロトコルとは (What is the USI protocol?)](http://shogidokoro.starfree.jp/usi.html) for more detail about UCI protocol specification and SFEN format.
 //!
 //! # Examples
 //!
