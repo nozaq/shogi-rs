@@ -12,8 +12,8 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-bitintr = "0.2.0"
-itertools = "0.8.2"
+bitintr = "0.3.0"
+itertools = "0.10.1"
 
 [profile.test]
 opt-level = 0
