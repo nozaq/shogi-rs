@@ -24,7 +24,7 @@ mod tests {
 
                 if let Some(ref pc) = *pc {
                     if pc.color == Color::White {
-                        let bb = pos.move_candidates(sq, pc);
+                        let bb = pos.move_candidates(sq, *pc);
                         cnt += bb.count();
                     }
                 }
