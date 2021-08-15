@@ -2,6 +2,9 @@
 ## [Unreleased]
 
 
+<a name="0.10.2"></a>
+## [0.10.2] - 2021-08-15
+
 <a name="0.10.1"></a>
 ## [0.10.1] - 2021-08-15
 ### Fix
@@ -82,7 +85,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.10.1...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.10.2...HEAD
+[0.10.2]: https://github.com/nozaq/shogi-rs/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/nozaq/shogi-rs/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/nozaq/shogi-rs/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/nozaq/shogi-rs/compare/0.8.0...0.9.0
