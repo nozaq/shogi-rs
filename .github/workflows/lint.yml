@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-    - master
+      - main
   pull_request:
 
 name: lint
@@ -15,7 +15,7 @@ jobs:
           - nightly
         os:
           - ubuntu-latest
-  
+
     steps:
       - uses: actions/checkout@v1
 
