@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-    - master
+      - main
   pull_request:
 
 name: build
@@ -18,7 +18,7 @@ jobs:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-  
+
     steps:
       - uses: actions/checkout@v1
 
