@@ -2,6 +2,12 @@
 ## [Unreleased]
 
 
+<a name="0.10.3"></a>
+## [0.10.3] - 2021-10-03
+### Fix
+- add inc_time before the turn begins
+
+
 <a name="0.10.2"></a>
 ## [0.10.2] - 2021-08-15
 
@@ -85,7 +91,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.10.2...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.10.3...HEAD
+[0.10.3]: https://github.com/nozaq/shogi-rs/compare/0.10.2...0.10.3
 [0.10.2]: https://github.com/nozaq/shogi-rs/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/nozaq/shogi-rs/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/nozaq/shogi-rs/compare/0.9.0...0.10.0

@@ -41,8 +41,8 @@ use crate::Color;
 ///
 /// // White player gets additional 1 second after the black move.
 /// fischer_clock.consume(Color::Black, Duration::from_secs(3));
-/// assert_eq!(Duration::from_secs(7), fischer_clock.black_time());
-/// assert_eq!(Duration::from_secs(11), fischer_clock.white_time());
+/// assert_eq!(Duration::from_secs(8), fischer_clock.black_time());
+/// assert_eq!(Duration::from_secs(10), fischer_clock.white_time());
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub enum TimeControl {
@@ -119,17 +119,17 @@ impl TimeControl {
                 ref black_inc,
                 ref white_inc,
             } => {
-                let (stm_time, opponent_time, inc_time) = if c == Color::Black {
-                    (black_time, white_time, white_inc)
+                let (stm_time, inc_time) = if c == Color::Black {
+                    (black_time, black_inc)
                 } else {
-                    (white_time, black_time, black_inc)
+                    (white_time, white_inc)
                 };
 
+                *stm_time += *inc_time;
                 if d > *stm_time {
                     return false;
                 }
                 *stm_time -= d;
-                *opponent_time += *inc_time;
             }
         }
 
@@ -185,13 +185,13 @@ mod tests {
     fn consume_fischer() {
         // black_time, white_time, black_inc, white_inc, consume, remaining_black, remaining_white
         let ok_cases = [
-            (50, 50, 5, 5, 10, 40, 55),
-            (50, 50, 5, 5, 50, 0, 55),
+            (50, 50, 5, 5, 10, 45, 50),
+            (50, 50, 5, 5, 50, 5, 50),
             (50, 50, 0, 0, 50, 0, 50),
         ];
 
         // black_time, white_time, black_inc, white_inc, consume
-        let ng_cases = [(50, 50, 5, 5, 51)];
+        let ng_cases = [(50, 50, 5, 5, 56)];
 
         for case in ok_cases.iter() {
             let mut t = TimeControl::FischerClock {
