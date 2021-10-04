@@ -1,90 +1,54 @@
-use std::error;
-use std::fmt;
-use std::io;
-use std::num::ParseIntError;
+use thiserror::Error;
 
 /// The error type for SFEN serialize/deserialize operations.
-#[derive(Debug, PartialEq, Eq)]
-pub struct SfenError {}
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum SfenError {
+    #[error("data fields are missing")]
+    MissingDataFields,
 
-impl fmt::Display for SfenError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "illegal SFEN string")
-    }
-}
+    #[error("an illegal piece notation is found")]
+    IllegalPieceType,
 
-impl error::Error for SfenError {
-    fn description(&self) -> &str {
-        "illegal SFEN string"
-    }
+    #[error("the side to move needs to be black or white")]
+    IllegalSideToMove,
 
-    fn cause(&self) -> Option<&dyn error::Error> {
-        None
-    }
-}
+    #[error("an illegal move count notation is found")]
+    IllegalMoveCount(#[from] std::num::ParseIntError),
 
-impl From<ParseIntError> for SfenError {
-    fn from(_: ParseIntError) -> SfenError {
-        SfenError {}
-    }
-}
+    #[error("an illegal move notation is found")]
+    IllegalMove,
 
-impl From<io::Error> for SfenError {
-    fn from(_: io::Error) -> SfenError {
-        SfenError {}
-    }
+    #[error("an illegal board state notation is found")]
+    IllegalBoardState,
 }
 
 /// Represents an error occurred during making a move.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum MoveError {
+    #[error("the king is in check")]
     InCheck,
+
+    #[error("nifu detected")]
     Nifu,
+
+    #[error("uchifuzume detected")]
     Uchifuzume,
+
+    #[error("perpetual check detected")]
     PerpetualCheckWin,
+
+    #[error("perpetual check detected")]
     PerpetualCheckLose,
+
+    #[error("not your turn")]
     EnemysTurn,
+
+    #[error("the piece can not move anymor")]
     NonMovablePiece,
+
+    #[error("the move is inconsistent with the current position: {0}")]
     Inconsistent(&'static str),
+
+    #[error("repetition detected")]
     Repetition,
-}
-
-impl fmt::Display for MoveError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            MoveError::InCheck => write!(f, "the king is in check"),
-            MoveError::Nifu => write!(f, "nifu detected"),
-            MoveError::Uchifuzume => write!(f, "uchifuzume detected"),
-            MoveError::PerpetualCheckWin => write!(f, "perpetual check detected"),
-            MoveError::PerpetualCheckLose => write!(f, "perpetual check detected"),
-            MoveError::EnemysTurn => write!(f, "not your turn"),
-            MoveError::NonMovablePiece => write!(f, "the piece can not move anymore"),
-            MoveError::Inconsistent(message) => write!(
-                f,
-                "the move is inconsistent with the current position: {}",
-                message
-            ),
-            MoveError::Repetition => write!(f, "repetition detected"),
-        }
-    }
-}
-
-impl error::Error for MoveError {
-    fn description(&self) -> &str {
-        match *self {
-            MoveError::InCheck => "the king is in check",
-            MoveError::Nifu => "nifu detected",
-            MoveError::Uchifuzume => "uchifuzume detected",
-            MoveError::PerpetualCheckWin => "perpetual check detected",
-            MoveError::PerpetualCheckLose => "perpetual check detected",
-            MoveError::EnemysTurn => "not your turn",
-            MoveError::NonMovablePiece => "the piece can not move anymore",
-            MoveError::Inconsistent(_) => "the move is inconsistent with the current position",
-            MoveError::Repetition => "repetition detected",
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        None
-    }
 }
