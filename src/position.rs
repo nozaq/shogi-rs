@@ -691,19 +691,19 @@ impl Position {
         // Build the initial position, all parts are required.
         parts
             .next()
-            .ok_or(SfenError {})
+            .ok_or(SfenError::MissingDataFields)
             .and_then(|s| self.parse_sfen_board(s))?;
         parts
             .next()
-            .ok_or(SfenError {})
+            .ok_or(SfenError::MissingDataFields)
             .and_then(|s| self.parse_sfen_stm(s))?;
         parts
             .next()
-            .ok_or(SfenError {})
+            .ok_or(SfenError::MissingDataFields)
             .and_then(|s| self.parse_sfen_hand(s))?;
         parts
             .next()
-            .ok_or(SfenError {})
+            .ok_or(SfenError::MissingDataFields)
             .and_then(|s| self.parse_sfen_ply(s))?;
 
         self.sfen_history.clear();
@@ -721,7 +721,7 @@ impl Position {
                         Err(_) => break,
                     }
                 } else {
-                    return Err(SfenError {});
+                    return Err(SfenError::IllegalMove);
                 }
             }
         }
@@ -761,7 +761,7 @@ impl Position {
 
         for (i, row) in rows.enumerate() {
             if i >= 9 {
-                return Err(SfenError {});
+                return Err(SfenError::IllegalBoardState);
             }
 
             let mut j = 0;
@@ -776,7 +776,7 @@ impl Position {
                         if let Some(n) = n.to_digit(10) {
                             for _ in 0..n {
                                 if j >= 9 {
-                                    return Err(SfenError {});
+                                    return Err(SfenError::IllegalBoardState);
                                 }
 
                                 let sq = Square::new(8 - j, i as u8).unwrap();
@@ -789,14 +789,14 @@ impl Position {
                     s => match Piece::from_sfen(s) {
                         Some(mut piece) => {
                             if j >= 9 {
-                                return Err(SfenError {});
+                                return Err(SfenError::IllegalBoardState);
                             }
 
                             if is_promoted {
                                 if let Some(promoted) = piece.piece_type.promote() {
                                     piece.piece_type = promoted;
                                 } else {
-                                    return Err(SfenError {});
+                                    return Err(SfenError::IllegalPieceType);
                                 }
                             }
 
@@ -809,7 +809,7 @@ impl Position {
 
                             is_promoted = false;
                         }
-                        None => return Err(SfenError {}),
+                        None => return Err(SfenError::IllegalPieceType),
                     },
                 }
             }
@@ -822,7 +822,7 @@ impl Position {
         self.side_to_move = match s {
             "b" => Color::Black,
             "w" => Color::White,
-            _ => return Err(SfenError {}),
+            _ => return Err(SfenError::IllegalSideToMove),
         };
         Ok(())
     }
@@ -846,7 +846,7 @@ impl Position {
                         Some(p) => self
                             .hand
                             .set(p, if num_pieces == 0 { 1 } else { num_pieces }),
-                        None => return Err(SfenError {}),
+                        None => return Err(SfenError::IllegalPieceType),
                     };
                     num_pieces = 0;
                 }
