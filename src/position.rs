@@ -508,7 +508,8 @@ impl Position {
         Ok(MoveRecord::Drop { to, piece: pc })
     }
 
-    fn pinned_bb(&self, c: Color) -> Bitboard {
+    /// Returns a list of squares at which a piece of the given color is pinned.
+    pub fn pinned_bb(&self, c: Color) -> Bitboard {
         let ksq = self.find_king(c);
         if ksq.is_none() {
             return Bitboard::empty();
