@@ -1,6 +1,6 @@
 [package]
 name = "shogi"
-version = "0.10.3"
+version = "0.11.0"
 authors = ["nozaq"]
 description = "Bitboard based Shogi library. Board representation, move handlings and various time control utilities."
 keywords = ["shogi", "move", "usi", "sfen"]

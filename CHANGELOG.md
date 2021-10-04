@@ -2,10 +2,17 @@
 ## [Unreleased]
 
 
+<a name="0.11.0"></a>
+## [0.11.0] - 2021-10-04
+### Feat
+- make Position#pinned_bb public ([#36](https://github.com/nozaq/shogi-rs/issues/36))
+- modernize error types ([#35](https://github.com/nozaq/shogi-rs/issues/35))
+
+
 <a name="0.10.3"></a>
 ## [0.10.3] - 2021-10-03
 ### Fix
-- add inc_time before the turn begins
+- add inc_time before the turn begins ([#34](https://github.com/nozaq/shogi-rs/issues/34))
 
 
 <a name="0.10.2"></a>
@@ -91,7 +98,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.10.3...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/nozaq/shogi-rs/compare/0.10.3...0.11.0
 [0.10.3]: https://github.com/nozaq/shogi-rs/compare/0.10.2...0.10.3
 [0.10.2]: https://github.com/nozaq/shogi-rs/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/nozaq/shogi-rs/compare/0.10.0...0.10.1
