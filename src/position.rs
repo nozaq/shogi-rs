@@ -238,6 +238,16 @@ impl Position {
         }
     }
 
+    /// Returns the position of the king with the given color.
+    pub fn find_king(&self, c: Color) -> Option<Square> {
+        let mut bb = &self.type_bb[PieceType::King.index()] & &self.color_bb[c.index()];
+        if bb.is_any() {
+            Some(bb.pop())
+        } else {
+            None
+        }
+    }
+
     /// Sets a piece at the given square.
     fn set_piece(&mut self, sq: Square, p: Option<Piece>) {
         self.board.set(sq, p);
@@ -260,15 +270,6 @@ impl Position {
         };
 
         &bb & &self.move_candidates(sq, attack_pc.flip())
-    }
-
-    fn find_king(&self, c: Color) -> Option<Square> {
-        let mut bb = &self.type_bb[PieceType::King.index()] & &self.color_bb[c.index()];
-        if bb.is_any() {
-            Some(bb.pop())
-        } else {
-            None
-        }
     }
 
     fn log_position(&mut self) {
@@ -446,9 +447,7 @@ impl Position {
             if let Some(king_sq) = to.shift(0, if stm == Color::Black { -1 } else { 1 }) {
                 // Is the dropped pawn attacking the opponent's king?
                 if let Some(
-                    pc
-                    @
-                    Piece {
+                    pc @ Piece {
                         piece_type: PieceType::King,
                         ..
                     },
@@ -1055,6 +1054,37 @@ mod tests {
             pos.set_sfen(case.0).expect("failed to parse SFEN string");
             assert_eq!(case.1, pos.in_check(Color::Black));
             assert_eq!(case.2, pos.in_check(Color::White));
+        }
+    }
+
+    #[test]
+    fn find_king() {
+        setup();
+
+        let test_cases = [
+            (
+                "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
+                Some(SQ_5I),
+                Some(SQ_5A),
+            ),
+            ("9/3r5/9/9/6B2/9/9/9/3K5 b P 1", Some(SQ_6I), None),
+            (
+                "ln2r1knl/2gb1+Rg2/4Pp1p1/p1pp1sp1p/1N2pN1P1/2P2PP2/PP1G1S2R/1SG6/LK6L w 2PSp 1",
+                Some(SQ_8I),
+                Some(SQ_3A),
+            ),
+            (
+                "lnsg1gsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSG1GSNL b - 1",
+                None,
+                None,
+            ),
+        ];
+
+        let mut pos = Position::new();
+        for case in test_cases.iter() {
+            pos.set_sfen(case.0).expect("failed to parse SFEN string");
+            assert_eq!(case.1, pos.find_king(Color::Black));
+            assert_eq!(case.2, pos.find_king(Color::White));
         }
     }
 
