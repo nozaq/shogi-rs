@@ -2,6 +2,12 @@
 ## [Unreleased]
 
 
+<a name="0.12.0"></a>
+## [0.12.0] - 2021-11-14
+### Feat
+- make Position#find_king() public ([#39](https://github.com/nozaq/shogi-rs/issues/39))
+
+
 <a name="0.11.0"></a>
 ## [0.11.0] - 2021-10-04
 ### Feat
@@ -98,7 +104,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.11.0...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.12.0...HEAD
+[0.12.0]: https://github.com/nozaq/shogi-rs/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/nozaq/shogi-rs/compare/0.10.3...0.11.0
 [0.10.3]: https://github.com/nozaq/shogi-rs/compare/0.10.2...0.10.3
 [0.10.2]: https://github.com/nozaq/shogi-rs/compare/0.10.1...0.10.2
