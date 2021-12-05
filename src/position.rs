@@ -627,7 +627,7 @@ impl Position {
         Ok(())
     }
 
-    /// Returns a list of squares to where the given pieve at the given square can move.
+    /// Returns a list of squares to where the given piece at the given square can move.
     pub fn move_candidates(&self, sq: Square, p: Piece) -> Bitboard {
         let bb = match p.piece_type {
             PieceType::Rook => BBFactory::rook_attack(sq, &self.occupied_bb),
