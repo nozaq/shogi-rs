@@ -159,7 +159,9 @@ impl Position {
 
     /// Checks if a player with the given color can declare winning.
     ///
-    /// See the section 25 in http://www.computer-shogi.org/wcsc26/rule.pdf for more detail.
+    /// See [the section 25 in 世界コンピュータ将棋選手権 大会ルール][csa] for more detail.
+    ///
+    /// [csa]: http://www2.computer-shogi.org/wcsc26/rule.pdf#page=9
     pub fn try_declare_winning(&self, c: Color) -> bool {
         if c != self.side_to_move {
             return false;
@@ -627,7 +629,7 @@ impl Position {
         Ok(())
     }
 
-    /// Returns a list of squares to where the given pieve at the given square can move.
+    /// Returns a list of squares to where the given piece at the given square can move.
     pub fn move_candidates(&self, sq: Square, p: Piece) -> Bitboard {
         let bb = match p.piece_type {
             PieceType::Rook => BBFactory::rook_attack(sq, &self.occupied_bb),
