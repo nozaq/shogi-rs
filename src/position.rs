@@ -449,7 +449,9 @@ impl Position {
             if let Some(king_sq) = to.shift(0, if stm == Color::Black { -1 } else { 1 }) {
                 // Is the dropped pawn attacking the opponent's king?
                 if let Some(
-                    pc @ Piece {
+                    pc
+                    @
+                    Piece {
                         piece_type: PieceType::King,
                         ..
                     },
@@ -465,6 +467,8 @@ impl Position {
                             .all(|sq| (&pinned & sq).is_any());
 
                         if not_attacked {
+                            // the dropped pawn may block bishop's moves
+                            self.occupied_bb ^= to;
                             // can the opponent's king evade?
                             let is_attacked = |sq| {
                                 if let Some(pc) = *self.piece_at(sq) {
@@ -475,8 +479,10 @@ impl Position {
 
                                 self.is_attacked_by(sq, stm)
                             };
+                            let uchifuzume = self.move_candidates(king_sq, pc).all(is_attacked);
+                            self.occupied_bb ^= to;
 
-                            if self.move_candidates(king_sq, pc).all(is_attacked) {
+                            if uchifuzume {
                                 return Err(MoveError::Uchifuzume);
                             }
                         }
@@ -1294,6 +1300,7 @@ mod tests {
                 "9/8p/3pG1gp1/2p2kl1N/3P1p1s1/lPP6/2SGBP3/PK1S2+p2/LN7 w RSL3Prbg2n4p 1",
                 SQ_8G,
             ),
+            ("7k1/5G2l/6B2/9/9/9/9/9/9 b NP 1", SQ_2B),
         ];
 
         let mut pos = Position::new();
