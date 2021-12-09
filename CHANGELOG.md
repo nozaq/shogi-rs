@@ -2,6 +2,13 @@
 ## [Unreleased]
 
 
+<a name="0.12.1"></a>
+## [0.12.1] - 2021-12-09
+### Fix
+- Uchifuzume check ([#41](https://github.com/nozaq/shogi-rs/issues/41))
+- typo and reference link ([#40](https://github.com/nozaq/shogi-rs/issues/40))
+
+
 <a name="0.12.0"></a>
 ## [0.12.0] - 2021-11-14
 ### Feat
@@ -104,7 +111,8 @@
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.12.1...HEAD
+[0.12.1]: https://github.com/nozaq/shogi-rs/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/nozaq/shogi-rs/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/nozaq/shogi-rs/compare/0.10.3...0.11.0
 [0.10.3]: https://github.com/nozaq/shogi-rs/compare/0.10.2...0.10.3
