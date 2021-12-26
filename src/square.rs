@@ -36,7 +36,7 @@ impl Square {
     /// Creates a new instance of `Square`.
     ///
     /// `file` can take a value from 0('1') to 8('9'), while `rank` is from 0('a') to 9('i').
-    pub fn new(file: u8, rank: u8) -> Option<Square> {
+    pub fn new(file: u8, rank: u8) -> Option<Self> {
         if file > 8 || rank > 8 {
             return None;
         }
@@ -47,7 +47,7 @@ impl Square {
     }
 
     /// Creates a new instance of `Square` from SFEN formatted string.
-    pub fn from_sfen(s: &str) -> Option<Square> {
+    pub fn from_sfen(s: &str) -> Option<Self> {
         let bytes: &[u8] = s.as_bytes();
 
         if bytes.len() != 2
@@ -76,7 +76,7 @@ impl Square {
     }
 
     /// Creates a new instance of `Square` with the given index value.
-    pub fn from_index(index: u8) -> Option<Square> {
+    pub fn from_index(index: u8) -> Option<Self> {
         if index >= 81 {
             return None;
         }
@@ -112,7 +112,8 @@ impl Square {
     /// assert_eq!(3, shifted.file());
     /// assert_eq!(4, shifted.rank());
     /// ```
-    pub fn shift(self, df: i8, dr: i8) -> Option<Square> {
+    #[must_use]
+    pub fn shift(self, df: i8, dr: i8) -> Option<Self> {
         let f = self.file() as i8 + df;
         let r = self.rank() as i8 + dr;
 

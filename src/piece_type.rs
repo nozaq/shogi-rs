@@ -27,7 +27,7 @@ impl PieceType {
     }
 
     /// Creates a new instance of `PieceType` from SFEN formatted string.
-    pub fn from_sfen(c: char) -> Option<PieceType> {
+    pub fn from_sfen(c: char) -> Option<Self> {
         Some(match c {
             'k' | 'K' => PieceType::King,
             'r' | 'R' => PieceType::Rook,
@@ -51,7 +51,8 @@ impl PieceType {
     /// assert_eq!(Some(PieceType::ProPawn), PieceType::Pawn.promote());
     /// assert_eq!(None, PieceType::ProPawn.promote());
     /// ```
-    pub fn promote(self) -> Option<PieceType> {
+    #[must_use]
+    pub fn promote(self) -> Option<Self> {
         use self::PieceType::*;
 
         Some(match self {
@@ -75,7 +76,8 @@ impl PieceType {
     /// assert_eq!(Some(PieceType::Pawn), PieceType::ProPawn.unpromote());
     /// assert_eq!(None, PieceType::Pawn.unpromote());
     /// ```
-    pub fn unpromote(self) -> Option<PieceType> {
+    #[must_use]
+    pub fn unpromote(self) -> Option<Self> {
         use self::PieceType::*;
 
         Some(match self {

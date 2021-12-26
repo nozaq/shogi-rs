@@ -17,7 +17,7 @@ pub enum Move {
 
 impl Move {
     /// Creates a new instance of `Move` from SFEN formatted string.
-    pub fn from_sfen(s: &str) -> Option<Move> {
+    pub fn from_sfen(s: &str) -> Option<Self> {
         if s.len() != 4 && (s.len() != 5 || s.chars().nth(4).unwrap() != '+') {
             return None;
         }

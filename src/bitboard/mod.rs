@@ -34,7 +34,7 @@ pub struct Bitboard {
 impl Bitboard {
     /// Returns an empty instance of `Bitboard`.
     #[inline(always)]
-    pub fn empty() -> Bitboard {
+    pub fn empty() -> Self {
         Bitboard { p: [0, 0] }
     }
 

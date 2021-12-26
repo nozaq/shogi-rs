@@ -38,7 +38,8 @@ impl Color {
     /// assert_eq!(Color::White, Color::Black.flip());
     /// assert_eq!(Color::Black, Color::White.flip());
     /// ```
-    pub fn flip(self) -> Color {
+    #[must_use]
+    pub fn flip(self) -> Self {
         match self {
             Color::Black => Color::White,
             Color::White => Color::Black,
