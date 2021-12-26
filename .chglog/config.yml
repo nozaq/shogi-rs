@@ -11,6 +11,7 @@ options:
         - fix
         - perf
         - refactor
+        - chore
   commit_groups:
     # title_maps:
     #   feat: Features

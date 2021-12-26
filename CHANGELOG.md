@@ -2,6 +2,13 @@
 ## [Unreleased]
 
 
+<a name="0.12.2"></a>
+## [0.12.2] - 2021-12-27
+### Chore
+- upgrade to 2021 edition ([#45](https://github.com/nozaq/shogi-rs/issues/45))
+- upgrade checkout action to v2 ([#44](https://github.com/nozaq/shogi-rs/issues/44))
+
+
 <a name="0.12.1"></a>
 ## [0.12.1] - 2021-12-09
 ### Fix
@@ -24,6 +31,9 @@
 
 <a name="0.10.3"></a>
 ## [0.10.3] - 2021-10-03
+### Chore
+- rename `master` branch to `main` ([#33](https://github.com/nozaq/shogi-rs/issues/33))
+
 ### Fix
 - add inc_time before the turn begins ([#34](https://github.com/nozaq/shogi-rs/issues/34))
 
@@ -39,6 +49,9 @@
 
 <a name="0.10.0"></a>
 ## [0.10.0] - 2020-11-14
+### Chore
+- use tarpaulin to measure coverage
+
 ### Fix
 - use range expressions
 - clippy warnings
@@ -48,6 +61,10 @@
 
 <a name="0.9.0"></a>
 ## [0.9.0] - 2019-12-30
+### Chore
+- delete unnecessary panic settings
+- use Github Actions
+
 ### Refactor
 - fix clippy warnings and errors
 - use dyn for specifying trait objects
@@ -56,6 +73,11 @@
 
 <a name="0.8.0"></a>
 ## [0.8.0] - 2019-01-24
+### Chore
+- use git-chglog to generate CHANGELOG
+- remove redundant builds
+- add appveyor config
+
 ### Feat
 - add Position#player_bb()
 
@@ -104,14 +126,21 @@
 
 <a name="0.2.0"></a>
 ## [0.2.0] - 2017-02-19
+### Chore
+- temporary workaround for coverall integration ([#3](https://github.com/nozaq/shogi-rs/issues/3))
+
 ### Feat
 - USI protocol helpers ([#4](https://github.com/nozaq/shogi-rs/issues/4))
 
 
 <a name="0.1.0"></a>
 ## 0.1.0 - 2017-02-18
+### Chore
+- add travis.yml
 
-[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.12.1...HEAD
+
+[Unreleased]: https://github.com/nozaq/shogi-rs/compare/0.12.2...HEAD
+[0.12.2]: https://github.com/nozaq/shogi-rs/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/nozaq/shogi-rs/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/nozaq/shogi-rs/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/nozaq/shogi-rs/compare/0.10.3...0.11.0
