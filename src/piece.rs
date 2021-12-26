@@ -10,7 +10,7 @@ pub struct Piece {
 
 impl Piece {
     /// Creates a new instance of `Piece` from SFEN formatted string.
-    pub fn from_sfen(c: char) -> Option<Piece> {
+    pub fn from_sfen(c: char) -> Option<Self> {
         let color = if c.is_uppercase() {
             Color::Black
         } else {
@@ -33,7 +33,8 @@ impl Piece {
     /// assert_eq!(Some(pc2), pc1.promote());
     /// assert_eq!(None, pc2.promote());
     /// ```
-    pub fn promote(self) -> Option<Piece> {
+    #[must_use]
+    pub fn promote(self) -> Option<Self> {
         self.piece_type.promote().map(|pt| Piece {
             piece_type: pt,
             color: self.color,
@@ -53,7 +54,8 @@ impl Piece {
     /// assert_eq!(Some(pc1), pc2.unpromote());
     /// assert_eq!(None, pc1.unpromote());
     /// ```
-    pub fn unpromote(self) -> Option<Piece> {
+    #[must_use]
+    pub fn unpromote(self) -> Option<Self> {
         self.piece_type.unpromote().map(|pt| Piece {
             piece_type: pt,
             color: self.color,
@@ -73,7 +75,8 @@ impl Piece {
     /// assert_eq!(pc2, pc1.flip());
     /// assert_eq!(pc1, pc2.flip());
     /// ```
-    pub fn flip(self) -> Piece {
+    #[must_use]
+    pub fn flip(self) -> Self {
         Piece {
             piece_type: self.piece_type,
             color: self.color.flip(),
