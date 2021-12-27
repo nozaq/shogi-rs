@@ -7,7 +7,7 @@
 
 A Bitboard-based shogi library in Rust. Board representation, move generation/validation and time control utilities.
 
-[Documentation](https://nozaq.github.io/shogi-rs)
+[Documentation](https://docs.rs/shogi)
 
 ## Usage
 
@@ -41,6 +41,11 @@ pos.make_move(m).unwrap();
 // Position can be converted back to the SFEN formatted string.
 assert_eq!("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f 7c7d", pos.to_sfen());
 ```
+
+## Related crates
+
+- [csa-rs](https://github.com/nozaq/csa-rs): A Shogi game serialization/deserialization library in CSA format. 
+- [usi-rs](https://github.com/nozaq/usi-rs): A library to handle type-safe communication with USI-compatible shogi engines. 
 
 ## License
 
