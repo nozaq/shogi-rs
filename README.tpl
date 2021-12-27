@@ -7,7 +7,7 @@
 
 A Bitboard-based shogi library in Rust. Board representation, move generation/validation and time control utilities.
 
-[Documentation](https://nozaq.github.io/shogi-rs)
+[Documentation](https://docs.rs/shogi)
 
 ## Usage
 
