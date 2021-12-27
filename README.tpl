@@ -13,6 +13,11 @@ A Bitboard-based shogi library in Rust. Board representation, move generation/va
 
 {{readme}}
 
+## Related crates
+
+- [csa-rs](https://github.com/nozaq/csa-rs): A Shogi game serialization/deserialization library in CSA format. 
+- [usi-rs](https://github.com/nozaq/usi-rs): A library to handle type-safe communication with USI-compatible shogi engines. 
+
 ## License
 
 `shogi-rs` is licensed under the MIT license. Please read the [LICENSE](LICENSE) file in this repository for more information.
