@@ -165,7 +165,7 @@ impl<'a> ops::BitAnd<Square> for &'a Bitboard {
     }
 }
 
-impl<'a> ops::BitAndAssign<Square> for Bitboard {
+impl ops::BitAndAssign<Square> for Bitboard {
     #[inline(always)]
     fn bitand_assign(&mut self, rhs: Square) {
         *self &= &square_bb(rhs)
@@ -181,7 +181,7 @@ impl<'a> ops::BitOr<Square> for &'a Bitboard {
     }
 }
 
-impl<'a> ops::BitOrAssign<Square> for Bitboard {
+impl ops::BitOrAssign<Square> for Bitboard {
     #[inline(always)]
     fn bitor_assign(&mut self, rhs: Square) {
         *self |= &square_bb(rhs)
@@ -197,7 +197,7 @@ impl<'a> ops::BitXor<Square> for &'a Bitboard {
     }
 }
 
-impl<'a> ops::BitXorAssign<Square> for Bitboard {
+impl ops::BitXorAssign<Square> for Bitboard {
     #[inline(always)]
     fn bitxor_assign(&mut self, rhs: Square) {
         *self ^= &square_bb(rhs)
