@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use std::fmt;
+use std::fmt::Write as _;
 
 use crate::bitboard::Factory as BBFactory;
 use crate::{Bitboard, Color, Hand, Move, MoveError, Piece, PieceType, SfenError, Square};
@@ -752,7 +753,7 @@ impl Position {
         );
 
         for m in self.move_history.iter() {
-            sfen.push_str(&format!(" {}", &m.to_sfen()));
+            let _ = write!(sfen, " {}", &m.to_sfen());
         }
 
         sfen
@@ -778,7 +779,7 @@ impl Position {
                     '+' => {
                         is_promoted = true;
                     }
-                    n if n.is_digit(10) => {
+                    n if n.is_ascii_digit() => {
                         if let Some(n) = n.to_digit(10) {
                             for _ in 0..n {
                                 if j >= 9 {
@@ -842,7 +843,7 @@ impl Position {
         let mut num_pieces: u8 = 0;
         for c in s.chars() {
             match c {
-                n if n.is_digit(10) => {
+                n if n.is_ascii_digit() => {
                     if let Some(n) = n.to_digit(10) {
                         num_pieces = num_pieces * 10 + (n as u8);
                     }

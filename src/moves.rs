@@ -23,7 +23,7 @@ impl Move {
         }
 
         let first = s.chars().next().unwrap();
-        if first.is_digit(10) {
+        if first.is_ascii_digit() {
             if let Some(from) = Square::from_sfen(&s[0..2]) {
                 if let Some(to) = Square::from_sfen(&s[2..4]) {
                     let promote = s.len() == 5;
