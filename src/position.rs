@@ -575,7 +575,7 @@ impl Position {
                 ref captured,
                 promoted,
             } => {
-                if *self.piece_at(from) != None {
+                if self.piece_at(from).is_some() {
                     return Err(MoveError::Inconsistent(
                         "`from` of the move is filled by another piece",
                     ));
