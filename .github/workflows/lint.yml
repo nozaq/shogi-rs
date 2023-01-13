@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - nightly
+          - stable
         os:
           - ubuntu-latest
 
