@@ -3,6 +3,9 @@
   "image": "mcr.microsoft.com/devcontainers/rust:1-bullseye",
   "customizations": {
     "vscode": {
+      "extensions": [
+        "EditorConfig.EditorConfig"
+      ],
       "settings": {}
     }
   }
