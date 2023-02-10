@@ -98,12 +98,12 @@ mod tests {
 
         for (i, case) in ok_cases.iter().enumerate() {
             let m = Move::from_sfen(case.0);
-            assert!(m.is_some(), "failed at #{}", i);
-            assert_eq!(case.1, m.unwrap(), "failed at #{}", i);
+            assert!(m.is_some(), "failed at #{i}");
+            assert_eq!(case.1, m.unwrap(), "failed at #{i}");
         }
 
         for (i, case) in ng_cases.iter().enumerate() {
-            assert!(Move::from_sfen(case).is_none(), "failed at #{}", i);
+            assert!(Move::from_sfen(case).is_none(), "failed at #{i}");
         }
     }
 
@@ -136,7 +136,7 @@ mod tests {
         ];
 
         for (i, case) in cases.iter().enumerate() {
-            assert_eq!(case.1.to_string(), case.0, "failed at #{}", i);
+            assert_eq!(case.1.to_string(), case.0, "failed at #{i}");
         }
     }
 }

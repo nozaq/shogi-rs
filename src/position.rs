@@ -77,7 +77,7 @@ impl fmt::Debug for PieceGrid {
         write!(fmt, "PieceGrid {{ ")?;
 
         for pc in self.0.iter() {
-            write!(fmt, "{:?} ", pc)?;
+            write!(fmt, "{pc:?} ")?;
         }
         write!(fmt, "}}")
     }
@@ -916,9 +916,9 @@ impl Position {
                         if n == 0 {
                             "".to_string()
                         } else if n == 1 {
-                            format!("{}", pc)
+                            format!("{pc}")
                         } else {
-                            format!("{}{}", n, pc)
+                            format!("{n}{pc}")
                         }
                     })
                     .join("")
@@ -991,7 +991,7 @@ impl fmt::Display for Position {
                 let n = self.hand.get(pc);
 
                 if n > 0 {
-                    write!(f, "{}{} ", pc, n)?;
+                    write!(f, "{pc}{n} ")?;
                 }
             }
             Ok(())
@@ -1263,8 +1263,7 @@ mod tests {
                     piece_type: PieceType::Pawn,
                 })
                 .err(),
-                "failed at #{}",
-                i
+                "failed at #{i}"
             );
         }
 
@@ -1276,8 +1275,7 @@ mod tests {
                     piece_type: PieceType::Pawn,
                 })
                 .is_ok(),
-                "failed at #{}",
-                i
+                "failed at #{i}"
             );
         }
     }
@@ -1312,8 +1310,7 @@ mod tests {
                     piece_type: PieceType::Pawn,
                 })
                 .err(),
-                "failed at #{}",
-                i
+                "failed at #{i}"
             );
         }
 
@@ -1325,8 +1322,7 @@ mod tests {
                     piece_type: PieceType::Pawn,
                 })
                 .is_ok(),
-                "failed at #{}",
-                i
+                "failed at #{i}"
             );
         }
     }
@@ -1405,8 +1401,8 @@ mod tests {
         let base_sfen = "l6nl/4+p+P1gk/2n2S3/p1p4Pp/3P2Sp1/1PPb2P1P/4+P1GS1/R8/LN4bKL w RG5gsnp 1";
         pos.set_sfen(base_sfen)
             .expect("failed to parse SFEN string");
-        let base_state = format!("{}", pos);
-        println!("{}", base_state);
+        let base_state = format!("{pos}");
+        println!("{base_state}");
         let test_cases = [
             Move::Drop {
                 to: SQ_5E,
@@ -1472,20 +1468,20 @@ mod tests {
             pos.set_sfen(base_sfen)
                 .expect("failed to parse SFEN string");
             pos.make_move(*case)
-                .unwrap_or_else(|_| panic!("failed to make a move: {}", case));
+                .unwrap_or_else(|_| panic!("failed to make a move: {case}"));
             pos.unmake_move()
-                .unwrap_or_else(|_| panic!("failed to unmake a move: {}", case));
+                .unwrap_or_else(|_| panic!("failed to unmake a move: {case}"));
             assert_eq!(
                 base_sfen,
                 pos.to_sfen(),
                 "{}",
-                format!("sfen unmatch for {}", case).as_str()
+                format!("sfen unmatch for {case}").as_str()
             );
             assert_eq!(
                 base_state,
-                format!("{}", pos),
+                format!("{pos}"),
                 "{}",
-                format!("state unmatch for {}", case).as_str()
+                format!("state unmatch for {case}").as_str()
             );
         }
     }

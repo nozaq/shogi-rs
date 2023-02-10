@@ -64,10 +64,7 @@ impl Square {
 
         debug_assert!(
             file < 9 && rank < 9,
-            "{} parsed as (file: {}, rank: {})",
-            s,
-            file,
-            rank
+            "{s} parsed as (file: {file}, rank: {rank})"
         );
 
         Some(Square {
@@ -163,8 +160,7 @@ impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         debug_assert!(
             self.file() < 9 && self.rank() < 9,
-            "trying to stringify an invalid square: {:?}",
-            self
+            "trying to stringify an invalid square: {self:?}"
         );
         write!(
             f,
@@ -267,8 +263,7 @@ mod tests {
         for case in ng_cases.iter() {
             assert!(
                 Square::from_sfen(case).is_none(),
-                "{} should cause an error",
-                case
+                "{case} should cause an error"
             );
         }
     }
