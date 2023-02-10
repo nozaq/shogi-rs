@@ -1,12 +1,14 @@
 {
-  "name": "Rust",
-  "image": "mcr.microsoft.com/devcontainers/rust:1-bullseye",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "EditorConfig.EditorConfig"
-      ],
-      "settings": {}
+    "name": "Rust",
+    "image": "mcr.microsoft.com/devcontainers/rust:bullseye",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "EditorConfig.EditorConfig"
+            ],
+            "settings": {
+                "rust-analyzer.checkOnSave.command": "clippy"
+            }
+        }
     }
-  }
 }
