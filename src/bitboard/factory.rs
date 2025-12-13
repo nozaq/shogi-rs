@@ -1,5 +1,5 @@
+use super::bits::Pext;
 use super::*;
-use bitintr::*;
 
 macro_rules! BitboardOr {
     ($lhs: expr, $rhs: expr) => {
