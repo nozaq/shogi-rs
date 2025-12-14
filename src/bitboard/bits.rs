@@ -7,6 +7,23 @@ pub trait Pext {
     fn pext(&self, mask: Self) -> Self;
 }
 
+fn pext_naive(value: u64, mask: u64) -> u64 {
+    let mut result = 0;
+    let mut bb = 1;
+    let mut mask = mask;
+
+    while mask != 0 {
+        let bit = mask & (!mask + 1);
+        if value & bit != 0 {
+            result |= bb;
+        }
+        mask &= mask - 1;
+        bb <<= 1;
+    }
+
+    result
+}
+
 impl Pext for u64 {
     /// If the CPU supports the BMI2 instruction set, this method uses
     /// the `_pext_u64` intrinsic for efficient extraction.
@@ -20,20 +37,6 @@ impl Pext for u64 {
     #[inline(always)]
     #[cfg(not(target_feature = "bmi2"))]
     fn pext(&self, mask: Self) -> Self {
-        let mut result = 0;
-        let mut bb = 1;
-        let mut mask = mask;
-        let value = *self;
-
-        while mask != 0 {
-            let bit = mask & (!mask + 1);
-            if value & bit != 0 {
-                result |= bb;
-            }
-            mask &= mask - 1;
-            bb <<= 1;
-        }
-
-        result
+        pext_naive(*self, mask)
     }
 }
