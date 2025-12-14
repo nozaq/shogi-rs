@@ -7,7 +7,7 @@ use super::{Color, PieceType, Square};
 /// Represents a board state in which each square takes two possible values, filled or empty.
 ///
 /// `Bitboard` implements [PEXT Bitboard](https://www.chessprogramming.org/BMI2#PEXTBitboards) which relies on [BMI2 instruction set](https://www.chessprogramming.org/BMI2).
-/// For environments which do not support BMI2, it will use software fallback methods. Thanks to [bitintr](https://github.com/gnzlbg/bitintr) crate.
+/// For environments which do not support BMI2, it will use software fallback methods.
 ///
 /// # Examples
 ///
@@ -333,6 +333,7 @@ fn square_bb(sq: Square) -> Bitboard {
     SQUARE_BB[sq.index()]
 }
 
+mod bits;
 mod factory;
 
 pub use self::factory::Factory;

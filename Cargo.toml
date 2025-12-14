@@ -12,7 +12,6 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-bitintr = "0.3"
 itertools = "0.13"
 thiserror = "1.0"
 
