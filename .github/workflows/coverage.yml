@@ -6,6 +6,11 @@ on:
 
 name: coverage
 
+permissions:
+  contents: read
+  code-quality: write
+  pull-requests: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,9 +20,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Push to coveralls.io
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      - name: Generate coverage report
         run: |
           cargo install cargo-tarpaulin --locked
-          cargo tarpaulin --ciserver github-ci --coveralls $COVERALLS_REPO_TOKEN
+          cargo tarpaulin --ciserver github-ci --out Xml
+
+      - name: Upload coverage report to GitHub
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-code-coverage@82c7aee3fb2ad768e00b00a0a8d749c5815085b6 # v1
+        with:
+          file: cobertura.xml
+          language: Rust
+          label: code-coverage/tarpaulin
