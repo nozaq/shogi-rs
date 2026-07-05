@@ -1,6 +1,10 @@
 {
     "name": "Rust",
     "image": "ghcr.io/bare-devcontainer/rust:trixie",
+    "remoteEnv": {
+        "EDITOR": "code --wait",
+        "VISUAL": "code --wait"
+    },
     "postCreateCommand": "rustup show",
     "customizations": {
         "vscode": {
