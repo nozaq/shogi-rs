@@ -459,13 +459,14 @@ fn init_lance_attack() {
             let block_mask = &FILE_BB[sq.file() as usize] & &!&(&RANK1_BB | &RANK9_BB);
 
             const BITS: usize = 7;
-            #[allow(clippy::needless_range_loop)]
-            for i in 0..1 << BITS {
-                let occupied = index_to_occupied(i, BITS, &block_mask);
-                unsafe {
-                    LANCE_ATTACK_BB[color_index][sq.index()][i] =
-                        &Factory::rook_attack(sq, &occupied)
-                            & &IN_FRONT_BB[color_index][sq.rank() as usize];
+            unsafe {
+                for (i, attack) in LANCE_ATTACK_BB[color_index][sq.index()]
+                    .iter_mut()
+                    .enumerate()
+                {
+                    let occupied = index_to_occupied(i, BITS, &block_mask);
+                    *attack = &Factory::rook_attack(sq, &occupied)
+                        & &IN_FRONT_BB[color_index][sq.rank() as usize];
                 }
             }
         }
