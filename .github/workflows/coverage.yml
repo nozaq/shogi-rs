@@ -1,19 +1,19 @@
+name: coverage
+
 on:
   push:
     branches:
       - main
   pull_request:
 
-name: coverage
-
-permissions:
-  contents: read
-  code-quality: write
-  pull-requests: read
+permissions: {}
 
 jobs:
   build:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    environment: codecov
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -25,10 +25,7 @@ jobs:
           cargo install cargo-tarpaulin --locked
           cargo tarpaulin --ciserver github-ci --out Xml
 
-      - name: Upload coverage report to GitHub
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/upload-code-coverage@82c7aee3fb2ad768e00b00a0a8d749c5815085b6 # v1
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          file: cobertura.xml
-          language: Rust
-          label: code-coverage/tarpaulin
+          token: ${{ secrets.CODECOV_TOKEN }}

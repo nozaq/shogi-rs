@@ -5,6 +5,7 @@
     "customizations": {
         "vscode": {
             "extensions": [
+                "anthropic.claude-code",
                 "EditorConfig.EditorConfig"
             ],
             "settings": {
