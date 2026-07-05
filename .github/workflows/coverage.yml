@@ -11,12 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+
       - name: Push to coveralls.io
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          cargo install cargo-tarpaulin
+          cargo install cargo-tarpaulin --locked
           cargo tarpaulin --ciserver github-ci --coveralls $COVERALLS_REPO_TOKEN
