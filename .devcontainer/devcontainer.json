@@ -6,14 +6,30 @@
         "VISUAL": "code --wait"
     },
     "postCreateCommand": "rustup show",
+    "mounts": [
+        {
+            "source": "${devcontainerId}-rust-cargo-registry",
+            "target": "/home/dev/.cargo/registry",
+            "type": "volume"
+        },
+        {
+            "source": "${devcontainerId}-rust-cargo-git",
+            "target": "/home/dev/.cargo/git",
+            "type": "volume"
+        }
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
                 "anthropic.claude-code",
-                "EditorConfig.EditorConfig"
+                "EditorConfig.EditorConfig",
+                "rust-lang.rust-analyzer"
             ],
             "settings": {
-                "rust-analyzer.checkOnSave.command": "clippy"
+                "[rust]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+                }
             }
         }
     }
