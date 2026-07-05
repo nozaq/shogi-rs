@@ -88,7 +88,7 @@ impl Bitboard {
 // Operator implementations
 /////////////////////////////////////////////////////////////////////////////
 
-impl<'a> ops::Not for &'a Bitboard {
+impl ops::Not for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]
@@ -99,7 +99,7 @@ impl<'a> ops::Not for &'a Bitboard {
     }
 }
 
-impl<'a, 'b> ops::BitAnd<&'a Bitboard> for &'b Bitboard {
+impl<'a> ops::BitAnd<&'a Bitboard> for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]
@@ -118,7 +118,7 @@ impl<'a> ops::BitAndAssign<&'a Bitboard> for Bitboard {
     }
 }
 
-impl<'a, 'b> ops::BitOr<&'a Bitboard> for &'b Bitboard {
+impl<'a> ops::BitOr<&'a Bitboard> for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]
@@ -137,7 +137,7 @@ impl<'a> ops::BitOrAssign<&'a Bitboard> for Bitboard {
     }
 }
 
-impl<'a, 'b> ops::BitXor<&'a Bitboard> for &'b Bitboard {
+impl<'a> ops::BitXor<&'a Bitboard> for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]
@@ -156,7 +156,7 @@ impl<'a> ops::BitXorAssign<&'a Bitboard> for Bitboard {
     }
 }
 
-impl<'a> ops::BitAnd<Square> for &'a Bitboard {
+impl ops::BitAnd<Square> for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]
@@ -172,7 +172,7 @@ impl ops::BitAndAssign<Square> for Bitboard {
     }
 }
 
-impl<'a> ops::BitOr<Square> for &'a Bitboard {
+impl ops::BitOr<Square> for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]
@@ -188,7 +188,7 @@ impl ops::BitOrAssign<Square> for Bitboard {
     }
 }
 
-impl<'a> ops::BitXor<Square> for &'a Bitboard {
+impl ops::BitXor<Square> for &Bitboard {
     type Output = Bitboard;
 
     #[inline(always)]

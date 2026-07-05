@@ -11,12 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - uses: taiki-e/install-action@cargo-tarpaulin
+
       - name: Push to coveralls.io
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          cargo install cargo-tarpaulin
           cargo tarpaulin --ciserver github-ci --coveralls $COVERALLS_REPO_TOKEN
