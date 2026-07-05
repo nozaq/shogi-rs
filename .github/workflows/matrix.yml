@@ -22,9 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust }}
+      - name: Set up Rust
+        run: |
+          rustup update ${{ matrix.rust }}
+          rustup default ${{ matrix.rust }}
 
       - run: cargo build
 
