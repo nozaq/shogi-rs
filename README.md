@@ -3,6 +3,7 @@
 [![Github Actions](https://github.com/nozaq/shogi-rs/workflows/build/badge.svg)](https://github.com/nozaq/shogi-rs/actions?workflow=build)
 [![crates.io](https://img.shields.io/crates/v/shogi.svg)](https://crates.io/crates/shogi)
 [![docs.rs](https://docs.rs/shogi/badge.svg)](https://docs.rs/shogi)
+[![codecov](https://codecov.io/github/nozaq/shogi-rs/graph/badge.svg?token=DNCQ0BSNWr)](https://codecov.io/github/nozaq/shogi-rs)
 
 A Bitboard-based shogi library in Rust. Board representation, move generation/validation and time control utilities.
 
