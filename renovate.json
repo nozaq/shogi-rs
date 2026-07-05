@@ -1,0 +1,19 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:best-practices",
+        ":semanticCommits",
+        ":semanticCommitTypeAll(chore)"
+    ],
+    "minimumReleaseAge": "14 days",
+    "labels": [
+        "deps"
+    ],
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "labels": [
+            "security"
+        ],
+        "minimumReleaseAge": null
+    }
+}
