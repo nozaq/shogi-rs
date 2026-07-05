@@ -1,23 +1,31 @@
+name: coverage
+
 on:
   push:
     branches:
       - main
   pull_request:
 
-name: coverage
+permissions: {}
 
 jobs:
   build:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
+    environment: codecov
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
-      - name: Push to coveralls.io
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      - name: Generate coverage report
         run: |
           cargo install cargo-tarpaulin --locked
-          cargo tarpaulin --ciserver github-ci --coveralls $COVERALLS_REPO_TOKEN
+          cargo tarpaulin --ciserver github-ci --out Xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
