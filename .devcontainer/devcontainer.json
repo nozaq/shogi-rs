@@ -1,6 +1,7 @@
 {
     "name": "Rust",
-    "image": "mcr.microsoft.com/devcontainers/rust:bullseye",
+    "image": "ghcr.io/bare-devcontainer/rust:trixie",
+    "postCreateCommand": "rustup show",
     "customizations": {
         "vscode": {
             "extensions": [
