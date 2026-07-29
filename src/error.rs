@@ -43,7 +43,7 @@ pub enum MoveError {
     #[error("not your turn")]
     EnemysTurn,
 
-    #[error("the piece can not move anymor")]
+    #[error("the piece cannot move anymore")]
     NonMovablePiece,
 
     #[error("the move is inconsistent with the current position: {0}")]
