@@ -1,6 +1,6 @@
 {
     "name": "Rust",
-    "image": "ghcr.io/bare-devcontainer/rust:trixie",
+    "image": "ghcr.io/bare-devcontainer/rustup:trixie",
     "remoteEnv": {
         "EDITOR": "code --wait",
         "VISUAL": "code --wait"
@@ -15,6 +15,12 @@
         {
             "source": "${devcontainerId}-rust-cargo-git",
             "target": "/home/dev/.cargo/git",
+            "type": "volume"
+        },
+        // Persist the shell history the image keeps in this directory.
+        {
+            "source": "${devcontainerId}-bash-history",
+            "target": "/home/dev/.local/state/bash",
             "type": "volume"
         }
     ],
