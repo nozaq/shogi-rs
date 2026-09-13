@@ -748,12 +748,12 @@ impl Position {
 
         let mut sfen = format!(
             "{} {} moves",
-            &self.sfen_history.first().unwrap().0,
+            self.sfen_history.first().unwrap().0,
             self.ply - self.move_history.len() as u16
         );
 
         for m in self.move_history.iter() {
-            let _ = write!(sfen, " {}", &m.to_sfen());
+            let _ = write!(sfen, " {}", m.to_sfen());
         }
 
         sfen
