@@ -714,6 +714,7 @@ impl Position {
             .and_then(|s| self.parse_sfen_ply(s))?;
 
         self.sfen_history.clear();
+        self.move_history.clear();
         self.log_position();
 
         // Make moves following the initial position, optional.
