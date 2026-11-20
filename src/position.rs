@@ -835,8 +835,8 @@ impl Position {
     }
 
     fn parse_sfen_hand(&mut self, s: &str) -> Result<(), SfenError> {
+        self.hand.clear();
         if s == "-" {
-            self.hand.clear();
             return Ok(());
         }
 
