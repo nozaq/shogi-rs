@@ -722,9 +722,7 @@ impl Position {
                 if let Some(m) = Move::from_sfen(m) {
                     // Stop if any error occurrs.
                     match self.make_move(m) {
-                        Ok(_) => {
-                            self.log_position();
-                        }
+                        Ok(_) => {}
                         Err(_) => break,
                     }
                 } else {
